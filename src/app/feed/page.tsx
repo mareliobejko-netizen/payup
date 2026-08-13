@@ -3,7 +3,8 @@ import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
 import { Flame, Heart, Home, Plus, Trophy, User } from "lucide-react";
 import { db } from "@/db";
 import { groups, penalties, proofLikes, proofs, users } from "@/db/schema";
-import { requireUser } from "@/lib/auth";
+import { getCurrentUser } from "@/lib/auth";
+import ProofMedia from "@/components/proof-media";
 import { toggleLike } from "./actions";
 import ShareButton from "./share-button";
 
@@ -12,7 +13,7 @@ export const dynamic = "force-dynamic";
 type Props = { searchParams: Promise<{ sort?: string }> };
 
 export default async function FeedPage({ searchParams }: Props) {
-  const currentUser = await requireUser();
+  const currentUser = await getCurrentUser();
   const params = await searchParams;
   const sort = params.sort === "popular" ? "popular" : "recent";
   const likeCount = sql<number>`count(${proofLikes.id})`;
@@ -42,7 +43,7 @@ export default async function FeedPage({ searchParams }: Props) {
     ? await query.orderBy(desc(likeCount), desc(proofs.publishedAt))
     : await query.orderBy(desc(proofs.publishedAt));
 
-  const myLikes = await db.select({ proofId: proofLikes.proofId }).from(proofLikes).where(eq(proofLikes.userId, currentUser.id));
+  const myLikes = currentUser ? await db.select({ proofId: proofLikes.proofId }).from(proofLikes).where(eq(proofLikes.userId, currentUser.id)) : [];
   const liked = new Set(myLikes.map((x) => x.proofId));
 
   return <main className="min-h-screen bg-zinc-950 text-white"><div className="mx-auto min-h-screen max-w-md border-x border-white/5 pb-28">
@@ -50,10 +51,10 @@ export default async function FeedPage({ searchParams }: Props) {
 
     <div className="space-y-5 px-5 py-6">{posts.length === 0 ? <div className="rounded-3xl border border-dashed border-white/10 p-10 text-center"><p className="text-5xl">🧱</p><h2 className="mt-4 text-xl font-black">The Wall è vuoto</h2><p className="mt-2 text-sm text-zinc-500">Quando qualcuno rende pubblica una prova approvata, apparirà qui.</p></div> : posts.map((post) => <article id={`post-${post.proofId}`} key={post.proofId} className="overflow-hidden rounded-3xl border border-white/10 bg-zinc-900">
       <div className="p-4"><div className="flex items-center gap-3"><Link href={`/u/${encodeURIComponent(post.username)}`}><Avatar username={post.username} avatarUrl={post.avatarUrl}/></Link><div className="min-w-0 flex-1"><Link href={`/u/${encodeURIComponent(post.username)}`} className="font-black hover:underline">@{post.username}</Link><p className="truncate text-xs text-zinc-500">{post.groupName}</p></div><span className="rounded-full bg-lime-400/10 px-3 py-1 text-[10px] font-black text-lime-300">✓ APPROVATA</span></div><p className="mt-4 rounded-2xl bg-zinc-800/70 p-3 text-sm font-semibold">💀 {post.penaltyTitle}</p></div>
-      <Link href={`/post/${post.proofId}`} className="block">{post.mediaType === "video" ? <video src={post.mediaUrl} controls playsInline className="aspect-[4/3] w-full object-cover"/> : <img src={post.mediaUrl} alt="Prova pubblica" className="aspect-[4/3] w-full object-cover"/>}</Link>
-      <div className="p-4">{post.caption && <p className="mb-4 text-sm text-zinc-300">“{post.caption}”</p>}<div className="flex items-center justify-between gap-3"><form action={toggleLike}><input type="hidden" name="proofId" value={post.proofId}/><button className={`flex items-center gap-2 rounded-full px-4 py-2 font-black ${liked.has(post.proofId) ? "bg-pink-500 text-white" : "bg-zinc-800 text-zinc-300"}`}><Heart size={18} fill={liked.has(post.proofId) ? "currentColor" : "none"}/>{Number(post.likes)}</button></form><ShareButton path={`/post/${post.proofId}`}/></div></div>
+      <ProofMedia src={post.mediaUrl} type={post.mediaType} alt="Prova pubblica"/>
+      <div className="p-4">{post.caption && <p className="mb-4 text-sm text-zinc-300">“{post.caption}”</p>}<div className="flex items-center justify-between gap-3">{currentUser ? <form action={toggleLike}><input type="hidden" name="proofId" value={post.proofId}/><button className={`flex items-center gap-2 rounded-full px-4 py-2 font-black ${liked.has(post.proofId) ? "bg-pink-500 text-white" : "bg-zinc-800 text-zinc-300"}`}><Heart size={18} fill={liked.has(post.proofId) ? "currentColor" : "none"}/>{Number(post.likes)}</button></form> : <Link href={`/register?next=${encodeURIComponent(`/post/${post.proofId}`)}`} className="flex items-center gap-2 rounded-full bg-zinc-800 px-4 py-2 font-black text-zinc-300"><Heart size={18}/>{Number(post.likes)}</Link>}<ShareButton path={`/post/${post.proofId}`}/></div></div>
     </article>)}</div>
-    <BottomNav active="feed"/>
+    {currentUser ? <BottomNav active="feed"/> : <div className="sticky bottom-4 mx-5 flex gap-2 rounded-2xl border border-white/10 bg-zinc-950/95 p-2 backdrop-blur"><Link href="/register" className="flex-1 rounded-xl bg-lime-400 px-4 py-3 text-center text-sm font-black text-black">REGISTRATI</Link><Link href="/login" className="rounded-xl bg-zinc-800 px-4 py-3 text-sm font-black">ACCEDI</Link></div>}
   </div></main>;
 }
 

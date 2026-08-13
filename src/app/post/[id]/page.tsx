@@ -8,6 +8,7 @@ import { groups, penalties, proofLikes, proofs, users } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { toggleLike } from "@/app/feed/actions";
 import ShareButton from "@/app/feed/share-button";
+import ProofMedia from "@/components/proof-media";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -127,11 +128,7 @@ export default async function PublicPostPage({ params }: Props) {
             <p className="mt-4 rounded-2xl bg-zinc-800/70 p-4 font-semibold">💀 {post.penaltyTitle}</p>
           </div>
 
-          {post.mediaType === "video" ? (
-            <video src={post.mediaUrl} controls autoPlay={false} playsInline className="aspect-[4/3] w-full object-cover" />
-          ) : (
-            <img src={post.mediaUrl} alt="Prova" className="aspect-[4/3] w-full object-cover" />
-          )}
+<ProofMedia src={post.mediaUrl} type={post.mediaType} alt="Prova"/>
 
           <div className="p-4">
             {post.caption && <p className="mb-4 text-sm text-zinc-300">“{post.caption}”</p>}

@@ -5,12 +5,12 @@ import { redirect } from "next/navigation";
 import { loginAction } from "./actions";
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   if (await getCurrentUser()) redirect("/");
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
 
   return (
     <main className="min-h-screen bg-zinc-950 px-5 py-10 text-white">
@@ -25,6 +25,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         </div>
 
         <form action={loginAction} className="space-y-4 rounded-3xl border border-white/10 bg-zinc-900 p-5">
+          {next && <input type="hidden" name="next" value={next} />}
           {error && (
             <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
               {error}
@@ -68,7 +69,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
         <p className="mt-6 text-center text-sm text-zinc-500">
           Non hai un account?{" "}
-          <Link href="/register" className="font-black text-lime-400">Registrati</Link>
+          <Link href={next ? `/register?next=${encodeURIComponent(next)}` : "/register"} className="font-black text-lime-400">Registrati</Link>
         </p>
       </div>
     </main>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { and, eq } from "drizzle-orm";
-import { ArrowLeft, Check, Copy, Crown, KeyRound, LogOut, Plus, RefreshCw, Settings, Trash2, UsersRound } from "lucide-react";
+import { ArrowLeft, Check, Crown, KeyRound, LogOut, Plus, RefreshCw, Settings, Trash2, UsersRound } from "lucide-react";
+import InviteTools from "./invite-tools";
 import { db } from "@/db";
 import { groupMembers, groups, users } from "@/db/schema";
 import { getActiveGroup, getMemberships, requireUser } from "@/lib/auth";
@@ -28,12 +29,12 @@ export default async function GroupPage({ searchParams }: Props) {
     {params.error && <div className="mt-5 rounded-2xl border border-red-500/20 bg-red-500/10 p-4 text-sm font-bold text-red-300">{params.error}</div>}
     {params.success && <div className="mt-5 rounded-2xl border border-lime-400/20 bg-lime-400/10 p-4 text-sm font-bold text-lime-300">✓ {params.success}</div>}
 
-    <div className="mt-7 space-y-3">{memberships.map((item) => <form action={switchGroup} key={item.groupId}><input type="hidden" name="groupId" value={item.groupId}/><button className={`flex w-full items-center gap-4 rounded-3xl border p-4 text-left ${active?.groupId === item.groupId ? "border-lime-400/40 bg-lime-400/10" : "border-white/5 bg-zinc-900"}`}><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-800"><UsersRound size={22}/></div><div className="flex-1"><p className="font-black">{item.name}</p><p className="mt-1 text-xs text-zinc-500">Codice: <span className="font-mono text-zinc-300">{item.inviteCode}</span></p></div>{active?.groupId === item.groupId && <Check className="text-lime-400"/>}</button></form>)}</div>
+    <div className="mt-7 space-y-3">{memberships.map((item) => <form action={switchGroup} key={item.groupId}><input type="hidden" name="groupId" value={item.groupId}/><button className={`flex w-full items-center gap-4 rounded-3xl border p-4 text-left ${active?.groupId === item.groupId ? "border-lime-400/40 bg-lime-400/10" : "border-white/5 bg-zinc-900"}`}><div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-zinc-800"><UsersRound size={22}/></div><div className="flex-1"><div className="flex items-center gap-2"><p className="font-black">{item.name}</p>{item.role === "admin" && <span className="rounded-full bg-amber-300/10 px-2 py-0.5 text-[9px] font-black text-amber-300">ADMIN</span>}</div><p className="mt-1 text-xs text-zinc-500">Codice: <span className="font-mono text-zinc-300">{item.inviteCode}</span></p></div>{active?.groupId === item.groupId && <span className="flex items-center gap-1 rounded-full bg-lime-400 px-2 py-1 text-[9px] font-black text-black"><Check size={12}/>ATTIVO</span>}</button></form>)}</div>
 
     {active && <>
       <section className="mt-7 rounded-3xl border border-white/5 bg-zinc-900 p-5">
         <div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[.2em] text-zinc-500">Gruppo attivo</p><h2 className="mt-1 text-xl font-black">{active.name}</h2></div><span className="rounded-full bg-zinc-800 px-3 py-1 text-xs font-black">{members.length} membri</span></div>
-        <div className="mt-4 rounded-2xl bg-zinc-950 p-4"><p className="text-xs font-bold uppercase text-zinc-600">Codice invito</p><p className="mt-1 flex items-center gap-2 font-mono text-xl font-black text-white"><Copy size={17} className="text-lime-400"/>{active.inviteCode}</p></div>
+        <InviteTools code={active.inviteCode}/>
       </section>
 
       <section className="mt-5 rounded-3xl border border-white/5 bg-zinc-900 p-5">

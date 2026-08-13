@@ -55,6 +55,8 @@ export const penalties = pgTable("penalties", {
   title: varchar("title", { length: 200 }).notNull(),
   description: text("description"),
   amountCents: integer("amount_cents"),
+  category: varchar("category", { length: 30 }).default("challenge").notNull(),
+  dueAt: timestamp("due_at", { withTimezone: true }),
   status: varchar("status", { length: 30 }).default("pending").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   completedAt: timestamp("completed_at", { withTimezone: true }),
@@ -94,3 +96,16 @@ export const proofLikes = pgTable(
   },
   (table) => [unique().on(table.proofId, table.userId)]
 );
+
+
+export const notifications = pgTable("notifications", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  groupId: uuid("group_id").references(() => groups.id, { onDelete: "cascade" }),
+  type: varchar("type", { length: 40 }).notNull(),
+  title: varchar("title", { length: 180 }).notNull(),
+  message: text("message"),
+  href: text("href"),
+  isRead: boolean("is_read").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});

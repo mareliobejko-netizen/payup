@@ -1,46 +1,38 @@
 import Link from "next/link";
-import { and, desc, eq, sql } from "drizzle-orm";
-import { BadgeCheck, CircleDollarSign, Clock3, Flame, Home, Plus, Skull, ThumbsDown, ThumbsUp, Trophy, User, UsersRound } from "lucide-react";
-import { db } from "@/db";
-import { groups, penalties, proofs, users, votes } from "@/db/schema";
-import { requirePayupContext } from "@/lib/auth";
-import { voteOnProof } from "./vote-actions";
+import { ArrowRight, BadgeCheck, Camera, Heart, ShieldCheck, Skull, Trophy, UsersRound } from "lucide-react";
+import { getCurrentUser } from "@/lib/auth";
+import Dashboard from "./dashboard";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const { user, group } = await requirePayupContext();
+  const user = await getCurrentUser();
+  if (user) return <Dashboard />;
 
-  const openPenalties = await db.select({ id: penalties.id, title: penalties.title, amountCents: penalties.amountCents, createdAt: penalties.createdAt, username: users.username, avatarUrl: users.avatarUrl })
-    .from(penalties).innerJoin(users, eq(penalties.assignedTo, users.id))
-    .where(and(eq(penalties.groupId, group.groupId), eq(penalties.status, "pending"))).orderBy(desc(penalties.createdAt));
+  return (
+    <main className="min-h-screen bg-zinc-950 text-white">
+      <header className="mx-auto flex max-w-6xl items-center justify-between px-5 py-5">
+        <Link href="/" className="flex items-center gap-2 font-black"><span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-lime-400 text-black"><Skull size={22}/></span>PayUp</Link>
+        <div className="flex gap-2"><Link href="/login" className="rounded-xl px-4 py-2 text-sm font-black text-zinc-300">Accedi</Link><Link href="/register" className="rounded-xl bg-lime-400 px-4 py-2 text-sm font-black text-black">Registrati</Link></div>
+      </header>
 
-  const verificationPosts = await db.select({ proofId: proofs.id, penaltyId: penalties.id, penaltyTitle: penalties.title, mediaUrl: proofs.mediaUrl, mediaType: proofs.mediaType, caption: proofs.caption, uploadedBy: proofs.uploadedBy, username: users.username, avatarUrl: users.avatarUrl, requiredVotes: groups.verificationVotes, confirmations: sql<number>`count(case when ${votes.confirmed} = true then 1 end)`, fakeVotes: sql<number>`count(case when ${votes.confirmed} = false then 1 end)` })
-    .from(proofs).innerJoin(penalties, eq(proofs.penaltyId, penalties.id)).innerJoin(groups, eq(penalties.groupId, groups.id)).innerJoin(users, eq(proofs.uploadedBy, users.id)).leftJoin(votes, eq(votes.proofId, proofs.id))
-    .where(and(eq(penalties.groupId, group.groupId), eq(penalties.status, "verifying"))).groupBy(proofs.id, penalties.id, users.username, users.avatarUrl, groups.verificationVotes).orderBy(desc(proofs.createdAt));
+      <section className="mx-auto grid max-w-6xl gap-10 px-5 pb-16 pt-12 md:grid-cols-2 md:items-center md:pt-24">
+        <div>
+          <span className="rounded-full border border-lime-400/20 bg-lime-400/10 px-4 py-2 text-xs font-black uppercase tracking-[.22em] text-lime-300">La vergogna non si dimentica più 😈</span>
+          <h1 className="mt-6 text-5xl font-black leading-[.95] tracking-tight md:text-7xl">Chi perde,<br/><span className="text-lime-400">paga.</span><br/>E deve provarlo.</h1>
+          <p className="mt-6 max-w-xl text-lg leading-8 text-zinc-400">Crea il gruppo con i tuoi amici, assegna penitenze, carica foto o video come prova e fate decidere al gruppo se è stata completata davvero.</p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row"><Link href="/register" className="flex h-14 items-center justify-center gap-2 rounded-2xl bg-lime-400 px-6 font-black text-black">CREA IL TUO GRUPPO <ArrowRight size={19}/></Link><Link href="/feed" className="flex h-14 items-center justify-center rounded-2xl border border-white/10 bg-zinc-900 px-6 font-black">🔥 Guarda The Wall</Link></div>
+        </div>
+        <div className="rounded-[2rem] border border-white/10 bg-zinc-900 p-4 shadow-2xl shadow-lime-400/5">
+          <div className="rounded-3xl bg-zinc-950 p-5"><div className="flex items-center gap-3"><div className="flex h-12 w-12 items-center justify-center rounded-full bg-lime-400 font-black text-black">M</div><div><p className="font-black">@Marco</p><p className="text-xs text-zinc-500">The Boys · ✅ FATTO PER DAVVERO</p></div></div><div className="mt-4 rounded-2xl bg-zinc-900 p-4 font-bold">🤡 Doveva offrire una pizza a tutto il gruppo</div><div className="mt-3 flex aspect-video items-center justify-center rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-700 text-6xl">📸</div><div className="mt-4 flex items-center gap-2 font-black"><Heart size={19} className="text-red-400"/> 184 <span className="ml-auto text-xs text-zinc-500">APPROVATA DAL GRUPPO</span></div></div>
+        </div>
+      </section>
 
-  const completedPenalties = await db.select({ id: penalties.id, title: penalties.title, username: users.username, avatarUrl: users.avatarUrl }).from(penalties).innerJoin(users, eq(penalties.assignedTo, users.id)).where(and(eq(penalties.groupId, group.groupId), eq(penalties.status, "completed"))).orderBy(desc(penalties.completedAt)).limit(3);
-  const currentUserVotes = await db.select({ proofId: votes.proofId, confirmed: votes.confirmed }).from(votes).where(eq(votes.userId, user.id));
+      <section className="mx-auto max-w-6xl px-5 py-16"><div className="grid gap-4 md:grid-cols-3"><Feature icon={<UsersRound/>} title="Gruppi privati" text="Un account, tanti gruppi. Calcetto, FIFA, poker o qualsiasi altra sfida."/><Feature icon={<Camera/>} title="Prove vere" text="Carica, scatta una foto o registra un video direttamente dal telefono."/><Feature icon={<BadgeCheck/>} title="Gli amici decidono" text="CONFERMO o FAKE. Solo dopo i voti la penitenza è davvero completata."/><Feature icon={<Trophy/>} title="Hall of Shame" text="Ranking e titoli per scoprire chi perde sempre e chi paga davvero."/><Feature icon={<Heart/>} title="The Wall" text="Pubblica le prove più divertenti e falle vedere anche a chi non è registrato."/><Feature icon={<ShieldCheck/>} title="Privato quando vuoi" text="Se non scegli The Wall, la prova resta visibile solo nel gruppo."/></div></section>
 
-  return <main className="min-h-screen bg-zinc-950 text-white"><div className="mx-auto min-h-screen max-w-md border-x border-white/5 pb-28">
-    <header className="sticky top-0 z-20 border-b border-white/5 bg-zinc-950/95 px-5 pb-4 pt-5 backdrop-blur"><div className="flex items-center justify-between"><div><p className="text-xs font-black uppercase tracking-[.3em] text-lime-400">PayUp</p><h1 className="mt-1 text-2xl font-black">Ciao {user.username} 👋</h1><Link href="/group" className="mt-2 inline-flex items-center gap-1.5 text-xs font-bold text-zinc-500"><UsersRound size={14}/>{group.name} ▾</Link></div><Link href="/profile" className="h-11 w-11 overflow-hidden rounded-full bg-zinc-900">{user.avatarUrl?<img src={user.avatarUrl} alt={user.username} className="h-full w-full object-cover"/>:<div className="flex h-full w-full items-center justify-center"><User size={20}/></div>}</Link></div>
-      <div className="mt-5 grid grid-cols-3 gap-2"><Stat icon={<Skull size={16}/>} value={openPenalties.length} label="Debiti"/><Stat icon={<Flame size={16}/>} value={verificationPosts.length} label="Da verificare"/><Stat icon={<Trophy size={16}/>} value={completedPenalties.length} label="Completate"/></div>
-    </header>
-
-    <div className="space-y-8 px-5 py-6">
-      <section><div className="mb-4"><p className="text-sm font-black uppercase tracking-wide">🔥 Da verificare</p><p className="mt-1 text-xs text-zinc-500">Dai il tuo verdetto</p></div>{verificationPosts.length===0 ? <Empty text="Nessuna prova da verificare" emoji="✅"/> : <div className="space-y-4">{verificationPosts.map((post)=>{const conf=Number(post.confirmations); const fake=Number(post.fakeVotes); const req=post.requiredVotes||3; const myVote=currentUserVotes.find(v=>v.proofId===post.proofId); const own=user.id===post.uploadedBy; return <article key={post.proofId} className="overflow-hidden rounded-3xl border border-white/10 bg-zinc-900"><div className="p-4"><div className="flex items-center gap-3"><Avatar username={post.username} avatarUrl={post.avatarUrl}/><div className="flex-1"><p className="font-black">{post.username}</p><p className="text-sm text-zinc-400">dice di averla fatta</p></div><Clock3 size={18} className="text-zinc-600"/></div><p className="mt-4 rounded-2xl bg-zinc-800/70 p-4 font-semibold">💀 {post.penaltyTitle}</p></div>{post.mediaType==="video"?<video src={post.mediaUrl} controls className="aspect-[4/3] w-full object-cover"/>:<img src={post.mediaUrl} alt="Prova" className="aspect-[4/3] w-full object-cover"/>}<div className="p-4">{post.caption&&<p className="mb-4 text-sm text-zinc-300">“{post.caption}”</p>}<div className="mb-3 flex justify-between text-sm font-black"><span>{conf}/{req} conferme</span><span className="text-red-400">{fake} fake</span></div><div className="h-2 overflow-hidden rounded-full bg-zinc-800"><div className="h-full rounded-full bg-lime-400" style={{width:`${Math.min(conf/req*100,100)}%`}}/></div>{own?<p className="mt-4 rounded-2xl bg-zinc-800 p-3 text-center text-sm font-bold text-zinc-400">È la tua prova: niente autovoto 👀</p>:myVote?<p className={`mt-4 rounded-2xl p-3 text-center text-sm font-black ${myVote.confirmed?"bg-lime-400/10 text-lime-300":"bg-red-500/10 text-red-400"}`}>{myVote.confirmed?"✅ Hai confermato":"🤡 Hai votato FAKE"}</p>:<div className="mt-4 grid grid-cols-2 gap-3"><form action={voteOnProof}><input type="hidden" name="proofId" value={post.proofId}/><input type="hidden" name="vote" value="confirm"/><button className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-lime-400 font-black text-black"><ThumbsUp size={18}/>CONFERMO</button></form><form action={voteOnProof}><input type="hidden" name="proofId" value={post.proofId}/><input type="hidden" name="vote" value="fake"/><button className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-red-500/10 font-black text-red-400"><ThumbsDown size={18}/>FAKE</button></form></div>}</div></article>})}</div>}</section>
-
-      <section><div className="mb-4"><p className="text-sm font-black uppercase tracking-wide">💀 Debiti aperti</p><p className="mt-1 text-xs text-zinc-500">Chi deve ancora pagare</p></div>{openPenalties.length===0?<Empty text="Nessun debito aperto" emoji="😇"/>:<div className="space-y-3">{openPenalties.map(item=><Link key={item.id} href={`/penalties/${item.id}`} className="flex items-center gap-4 rounded-2xl bg-zinc-900 p-4"><Avatar username={item.username} avatarUrl={item.avatarUrl}/><div className="min-w-0 flex-1"><p className="font-black">{item.username}</p><p className="truncate text-sm text-zinc-300">{item.title}</p>{item.amountCents!==null&&<p className="mt-1 text-sm font-black text-emerald-400">{formatMoney(item.amountCents)}</p>}</div><span className="rounded-full bg-red-500/10 px-3 py-1 text-[10px] font-black text-red-400">DA FARE</span></Link>)}</div>}</section>
-
-      {completedPenalties.length>0&&<section><p className="mb-4 text-sm font-black uppercase">✅ Fatto per davvero</p><div className="space-y-3">{completedPenalties.map(item=><Link key={item.id} href={`/penalties/${item.id}`} className="flex items-center gap-3 rounded-2xl border border-lime-400/10 bg-lime-400/5 p-4"><Avatar username={item.username} avatarUrl={item.avatarUrl}/><div><p className="font-black">{item.username}</p><p className="text-sm text-zinc-400">{item.title}</p></div></Link>)}</div></section>}
-      <Link href="/add" className="flex h-16 w-full items-center justify-center gap-3 rounded-3xl bg-lime-400 text-lg font-black text-black"><Plus size={24}/>NUOVA SCONFITTA</Link>
-    </div>
-    <BottomNav/>
-  </div></main>;
+      <section className="border-t border-white/5 bg-zinc-900/40"><div className="mx-auto max-w-3xl px-5 py-20 text-center"><p className="text-5xl">💀</p><h2 className="mt-5 text-4xl font-black">Nel tuo gruppo qualcuno perde sempre?</h2><p className="mt-4 text-zinc-400">Adesso almeno non potrà far finta di essersene dimenticato.</p><Link href="/register" className="mt-7 inline-flex h-14 items-center rounded-2xl bg-lime-400 px-7 font-black text-black">INIZIA GRATIS</Link></div></section>
+    </main>
+  );
 }
 
-function Avatar({username,avatarUrl}:{username:string;avatarUrl:string|null}){return <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-lime-400 text-black">{avatarUrl?<img src={avatarUrl} alt={username} className="h-full w-full object-cover"/>:<div className="flex h-full w-full items-center justify-center font-black">{username[0]?.toUpperCase()}</div>}</div>}
-function Stat({icon,value,label}:{icon:React.ReactNode;value:number;label:string}){return <div className="rounded-2xl bg-zinc-900 p-3"><div className="flex items-center gap-2 text-lime-400">{icon}<span className="text-lg font-black text-white">{value}</span></div><p className="mt-1 text-[11px] font-bold text-zinc-500">{label}</p></div>}
-function Empty({text,emoji}:{text:string;emoji:string}){return <div className="rounded-3xl border border-dashed border-white/10 bg-zinc-900/40 p-8 text-center"><p className="text-4xl">{emoji}</p><p className="mt-3 font-black">{text}</p></div>}
-function formatMoney(c:number){return new Intl.NumberFormat("it-IT",{style:"currency",currency:"EUR"}).format(c/100)}
-function BottomNav(){return <nav className="fixed bottom-0 left-1/2 z-30 flex w-full max-w-md -translate-x-1/2 items-center justify-around border-t border-white/10 bg-zinc-950/95 px-2 pb-5 pt-3"><Link href="/" className="flex min-w-14 flex-col items-center gap-1 text-[10px] font-bold text-lime-400"><Home size={20}/>Home</Link><Link href="/feed" className="flex min-w-14 flex-col items-center gap-1 text-[10px] font-bold text-zinc-500"><Flame size={20}/>The Wall</Link><Link href="/add" className="-mt-8 flex h-14 w-14 items-center justify-center rounded-full bg-lime-400 text-black"><Plus size={26}/></Link><Link href="/ranking" className="flex min-w-14 flex-col items-center gap-1 text-[10px] font-bold text-zinc-500"><Trophy size={20}/>Ranking</Link><Link href="/profile" className="flex min-w-14 flex-col items-center gap-1 text-[10px] font-bold text-zinc-500"><User size={20}/>Profilo</Link></nav>}
+function Feature({icon,title,text}:{icon:React.ReactNode;title:string;text:string}) { return <div className="rounded-3xl border border-white/5 bg-zinc-900 p-6"><div className="text-lime-400">{icon}</div><h3 className="mt-4 text-xl font-black">{title}</h3><p className="mt-2 text-sm leading-6 text-zinc-500">{text}</p></div> }

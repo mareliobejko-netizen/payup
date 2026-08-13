@@ -5,12 +5,12 @@ import { getCurrentUser } from "@/lib/auth";
 import { registerAction } from "./actions";
 
 type RegisterPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; next?: string }>;
 };
 
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   if (await getCurrentUser()) redirect("/");
-  const { error } = await searchParams;
+  const { error, next } = await searchParams;
 
   return (
     <main className="min-h-screen bg-zinc-950 px-5 py-8 text-white">
@@ -24,6 +24,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
         </div>
 
         <form action={registerAction} className="space-y-4 rounded-3xl border border-white/10 bg-zinc-900 p-5">
+          {next && <input type="hidden" name="next" value={next} />}
           {error && (
             <div className="rounded-2xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-sm font-bold text-red-300">
               {error}
@@ -82,7 +83,7 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
 
         <p className="mt-6 text-center text-sm text-zinc-500">
           Hai già un account?{" "}
-          <Link href="/login" className="font-black text-lime-400">Accedi</Link>
+          <Link href={next ? `/login?next=${encodeURIComponent(next)}` : "/login"} className="font-black text-lime-400">Accedi</Link>
         </p>
       </div>
     </main>
