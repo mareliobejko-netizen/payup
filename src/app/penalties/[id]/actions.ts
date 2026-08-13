@@ -30,7 +30,7 @@ export async function submitProof({ penaltyId, mediaUrl, mediaType, caption, isP
   await logActivity({groupId:penalty.groupId,actorUserId:currentUser.id,type:"proof_uploaded",message:`${currentUser.username} ha caricato una prova: ${penalty.title}`,href:`/penalties/${penaltyId}`});
   const members = await db.select({ userId: groupMembers.userId }).from(groupMembers).where(eq(groupMembers.groupId, penalty.groupId));
   const [who] = await db.select({ username: users.username }).from(users).where(eq(users.id, currentUser.id)).limit(1);
-  await Promise.all(members.filter((m) => m.userId !== currentUser.id).map((m) => notify({ userId: m.userId, groupId: penalty.groupId, type: "proof_uploaded", title: "Nuova prova da verificare 📸", message: `${who?.username ?? "Qualcuno"} ha caricato una prova: ${penalty.title}`, href: `/penalties/${penaltyId}` })));
+  await Promise.all(members.filter((m) => m.userId !== currentUser.id).map((m) => notify({ userId: m.userId, groupId: penalty.groupId, type: "proof_uploaded", title: "C’è una prova da giudicare 📸", message: `${who?.username ?? "Qualcuno"} dice di aver completato “${penalty.title}”. Confermi?`, href: `/penalties/${penaltyId}` })));
 
   revalidatePath("/");
   revalidatePath("/feed");

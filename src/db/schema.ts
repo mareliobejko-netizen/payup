@@ -81,6 +81,9 @@ export const proofs = pgTable("proofs", {
   caption: text("caption"),
   isPublic: boolean("is_public").default(false).notNull(),
   publishedAt: timestamp("published_at", { withTimezone: true }),
+  isHidden: boolean("is_hidden").default(false).notNull(),
+  hiddenAt: timestamp("hidden_at", { withTimezone: true }),
+  hiddenBy: uuid("hidden_by").references(() => users.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 

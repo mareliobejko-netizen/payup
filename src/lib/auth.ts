@@ -128,3 +128,18 @@ export async function isGroupMember(groupId: string, userId: string) {
     .limit(1);
   return Boolean(membership);
 }
+
+
+export function isPayUpAdminEmail(email: string | null | undefined) {
+  const configured = (process.env.PAYUP_ADMIN_EMAILS ?? "")
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter(Boolean);
+  return Boolean(email && configured.includes(email.toLowerCase()));
+}
+
+export async function requirePayUpAdmin() {
+  const user = await requireUser();
+  if (!isPayUpAdminEmail(user.email)) redirect("/");
+  return user;
+}

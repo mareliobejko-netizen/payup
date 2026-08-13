@@ -1,6 +1,6 @@
 {
   "name": "payup",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -15,7 +15,8 @@
     "db:v06-migrate": "tsx src/db/v06-migrate.ts",
     "db:v07-migrate": "tsx src/db/v07-migrate.ts",
     "push:keys": "node scripts/generate-vapid.mjs",
-    "db:v08-migrate": "tsx src/db/v08-migrate.ts"
+    "db:v08-migrate": "tsx src/db/v08-migrate.ts",
+    "db:v09-migrate": "tsx src/db/v09-migrate.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "latest",

@@ -36,6 +36,7 @@ async function getPublicPost(id: string) {
       and(
         eq(proofs.id, id),
         eq(proofs.isPublic, true),
+        eq(proofs.isHidden, false),
         eq(penalties.status, "completed"),
         isNotNull(proofs.publishedAt),
       ),
