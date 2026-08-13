@@ -1,6 +1,6 @@
 import { createHash, randomBytes } from "crypto";
 import { and, eq, gt } from "drizzle-orm";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { groupMembers, groups, sessions, users } from "@/db/schema";
@@ -9,15 +9,33 @@ const SESSION_COOKIE = "payup_session";
 const ACTIVE_GROUP_COOKIE = "payup_group_id";
 const SESSION_DAYS = 30;
 
-function hashToken(token: string) {
+export function hashToken(token: string) {
   return createHash("sha256").update(token).digest("hex");
+}
+
+function deviceFromUA(ua: string) {
+  if (!ua) return "Dispositivo sconosciuto";
+  const os = /iPhone|iPad/i.test(ua) ? "iPhone/iPad" : /Android/i.test(ua) ? "Android" : /Windows/i.test(ua) ? "Windows" : /Macintosh|Mac OS X/i.test(ua) ? "Mac" : /Linux/i.test(ua) ? "Linux" : "Dispositivo";
+  const browser = /Edg\//.test(ua) ? "Edge" : /Firefox\//.test(ua) ? "Firefox" : /Chrome\//.test(ua) ? "Chrome" : /Safari\//.test(ua) ? "Safari" : "Browser";
+  return `${os} · ${browser}`;
 }
 
 export async function createSession(userId: string) {
   const token = randomBytes(32).toString("hex");
   const expiresAt = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000);
+  const h = await headers();
+  const ua = h.get("user-agent") ?? "";
+  const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() ?? h.get("x-real-ip") ?? "";
 
-  await db.insert(sessions).values({ userId, tokenHash: hashToken(token), expiresAt });
+  await db.insert(sessions).values({
+    userId,
+    tokenHash: hashToken(token),
+    expiresAt,
+    userAgent: ua || null,
+    deviceName: deviceFromUA(ua),
+    ipHash: ip ? hashToken(ip) : null,
+    lastSeenAt: new Date(),
+  });
 
   const store = await cookies();
   store.set(SESSION_COOKIE, token, {
@@ -27,6 +45,12 @@ export async function createSession(userId: string) {
     path: "/",
     expires: expiresAt,
   });
+}
+
+export async function getCurrentSessionHash() {
+  const store = await cookies();
+  const token = store.get(SESSION_COOKIE)?.value;
+  return token ? hashToken(token) : null;
 }
 
 export async function deleteCurrentSession() {
@@ -42,14 +66,17 @@ export async function getCurrentUser() {
   const token = store.get(SESSION_COOKIE)?.value;
   if (!token) return null;
 
+  const tokenHash = hashToken(token);
   const [result] = await db
-    .select({ user: users })
+    .select({ user: users, sessionId: sessions.id })
     .from(sessions)
     .innerJoin(users, eq(sessions.userId, users.id))
-    .where(and(eq(sessions.tokenHash, hashToken(token)), gt(sessions.expiresAt, new Date())))
+    .where(and(eq(sessions.tokenHash, tokenHash), gt(sessions.expiresAt, new Date())))
     .limit(1);
 
-  return result?.user ?? null;
+  if (!result) return null;
+  void db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, result.sessionId)).catch(()=>{});
+  return result.user;
 }
 
 export async function requireUser() {

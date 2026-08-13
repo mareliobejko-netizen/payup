@@ -2,6 +2,7 @@ import Link from "next/link";
 import { and, eq } from "drizzle-orm";
 import { ArrowLeft, Check, Crown, History, KeyRound, LogOut, Plus, RefreshCw, Settings, Shield, Trash2, UsersRound } from "lucide-react";
 import InviteTools from "./invite-tools";
+import ConfirmButton from "@/components/confirm-button";
 import { db } from "@/db";
 import { groupMembers, groups, users } from "@/db/schema";
 import { getActiveGroup, getMemberships, requireUser } from "@/lib/auth";
@@ -43,7 +44,7 @@ export default async function GroupPage({ searchParams }: Props) {
         <div className="mt-4 space-y-3">{members.map((member) => <div key={member.userId} className="flex items-center gap-3 rounded-2xl bg-zinc-950 p-3">
           <Avatar username={member.username} avatarUrl={member.avatarUrl}/>
           <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate font-black">{member.username}</p>{member.createdBy === member.userId && <Crown size={14} className="text-amber-300"/>}</div><p className="text-xs text-zinc-500">{member.role === "admin" ? "Admin" : member.role === "moderator" ? "Moderatore" : "Membro"}</p></div>{isAdmin && member.userId !== user.id && member.createdBy !== member.userId && <form action={changeRoleAction}><input type="hidden" name="groupId" value={active.groupId}/><input type="hidden" name="userId" value={member.userId}/><select name="role" defaultValue={member.role} className="rounded-xl bg-zinc-800 px-2 py-2 text-xs font-black"><option value="member">Membro</option><option value="moderator">Moderatore</option></select><button className="ml-1 rounded-xl bg-zinc-700 px-2 py-2 text-[10px] font-black">OK</button></form>}
-          {isManager && member.userId !== user.id && member.createdBy !== member.userId && <form action={removeMemberAction}><input type="hidden" name="groupId" value={active.groupId}/><input type="hidden" name="userId" value={member.userId}/><button title="Rimuovi membro" className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-400"><Trash2 size={16}/></button></form>}
+          {isManager && member.userId !== user.id && member.createdBy !== member.userId && <form action={removeMemberAction}><input type="hidden" name="groupId" value={active.groupId}/><input type="hidden" name="userId" value={member.userId}/><ConfirmButton title="Rimuovi membro" message="Vuoi davvero rimuovere questo membro dal gruppo?" className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-400"><Trash2 size={16}/></ConfirmButton></form>}
         </div>)}</div>
       </section>
 
@@ -53,7 +54,7 @@ export default async function GroupPage({ searchParams }: Props) {
         <form action={regenerateInviteCodeAction} className="mt-3"><input type="hidden" name="groupId" value={active.groupId}/><button className="flex h-11 w-full items-center justify-center gap-2 rounded-2xl bg-amber-300/10 font-black text-amber-300"><RefreshCw size={16}/>RIGENERA CODICE INVITO</button></form>
       </section>}
 
-      {active && members.find((m)=>m.userId===user.id)?.createdBy !== user.id && <form action={leaveGroupAction} className="mt-5"><input type="hidden" name="groupId" value={active.groupId}/><button className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-red-500/10 font-black text-red-400"><LogOut size={17}/>ESCI DAL GRUPPO</button></form>}
+      {active && members.find((m)=>m.userId===user.id)?.createdBy !== user.id && <form action={leaveGroupAction} className="mt-5"><input type="hidden" name="groupId" value={active.groupId}/><ConfirmButton message="Vuoi davvero uscire da questo gruppo?" className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-red-500/10 font-black text-red-400"><LogOut size={17}/>ESCI DAL GRUPPO</ConfirmButton></form>}
     </>}
 
     <div className="mt-8 grid gap-4">

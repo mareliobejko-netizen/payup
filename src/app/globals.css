@@ -27,3 +27,8 @@ button,a { touch-action: manipulation; }
 @media (prefers-reduced-motion: no-preference){ .payup-card{transition:transform .18s ease,border-color .18s ease,background-color .18s ease}.payup-card:active{transform:scale(.985)} }
 .safe-bottom{padding-bottom:max(1.25rem,env(safe-area-inset-bottom));}
 .skeleton{background:linear-gradient(90deg,#18181b 25%,#27272a 37%,#18181b 63%);background-size:400% 100%;animation:shimmer 1.3s ease infinite}@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}
+
+@media (prefers-reduced-motion: no-preference){
+  @keyframes payupFadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+  .payup-enter{animation:payupFadeUp .28s ease both}
+}

@@ -4,6 +4,7 @@ import { Camera, Check, Film, GalleryHorizontal, Globe2, Loader2, Lock, Upload, 
 import { useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { submitProof } from "./actions";
+import { optimizeImage, mb } from "@/lib/client-media";
 
 type Props = { penaltyId: string; wallEnabled?: boolean; defaultPublic?: boolean };
 
@@ -14,28 +15,33 @@ export default function ProofUploader({ penaltyId, wallEnabled=true, defaultPubl
   const [isPublic, setIsPublic] = useState(defaultPublic);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
+  const [optimizing, setOptimizing] = useState(false);
+  const [originalSize, setOriginalSize] = useState<number | null>(null);
   const galleryRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
   const videoRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview); }, [preview]);
 
-  function chooseFile(selected?: File) {
+  async function chooseFile(selected?: File) {
     if (!selected) return;
     setError("");
-    if (!selected.type.startsWith("image/") && !selected.type.startsWith("video/")) {
-      setError("Puoi usare solo foto o video.");
-      return;
-    }
+    if (!selected.type.startsWith("image/") && !selected.type.startsWith("video/")) { setError("Puoi usare solo foto o video."); return; }
+    if (selected.type.startsWith("video/") && selected.size > 80 * 1024 * 1024) { setError("Il video supera 80 MB. Registrane uno più breve o riducilo prima dell’upload."); return; }
+    setOriginalSize(selected.size);
+    setOptimizing(true);
+    const prepared = selected.type.startsWith("image/") ? await optimizeImage(selected) : selected;
+    setOptimizing(false);
     if (preview) URL.revokeObjectURL(preview);
-    setFile(selected);
-    setPreview(URL.createObjectURL(selected));
+    setFile(prepared);
+    setPreview(URL.createObjectURL(prepared));
   }
 
   function clearFile() {
     if (preview) URL.revokeObjectURL(preview);
     setFile(null);
     setPreview(null);
+    setOriginalSize(null);
     if (galleryRef.current) galleryRef.current.value = "";
     if (cameraRef.current) cameraRef.current.value = "";
     if (videoRef.current) videoRef.current.value = "";
@@ -47,13 +53,19 @@ export default function ProofUploader({ penaltyId, wallEnabled=true, defaultPubl
     setError("");
     try {
       const safeName = file.name || `${file.type.startsWith("video/") ? "video" : "photo"}-${Date.now()}`;
-      const blob = await upload(`proofs/${penaltyId}/${safeName}`, file, {
-        access: "public",
-        handleUploadUrl: "/api/proof-upload",
-      });
+      let mediaUrl: string;
+      if (!isPublic && file.type.startsWith("image/") && file.size <= 4 * 1024 * 1024 && process.env.NEXT_PUBLIC_PRIVATE_PROOFS === "true") {
+        const response = await fetch(`/api/private-proof-upload?penaltyId=${encodeURIComponent(penaltyId)}&filename=${encodeURIComponent(safeName)}`, { method: "POST", headers: { "content-type": file.type }, body: file });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error || "Upload privato fallito");
+        mediaUrl = data.url;
+      } else {
+        const blob = await upload(`proofs/${penaltyId}/${safeName}`, file, { access: "public", handleUploadUrl: "/api/proof-upload" });
+        mediaUrl = blob.url;
+      }
       await submitProof({
         penaltyId,
-        mediaUrl: blob.url,
+        mediaUrl,
         mediaType: file.type.startsWith("video/") ? "video" : "image",
         caption,
         isPublic,
@@ -81,13 +93,14 @@ export default function ProofUploader({ penaltyId, wallEnabled=true, defaultPubl
       <input ref={cameraRef} type="file" accept="image/*" capture="environment" onChange={(e)=>chooseFile(e.target.files?.[0])} className="hidden"/>
       <input ref={videoRef} type="file" accept="video/*" capture="environment" onChange={(e)=>chooseFile(e.target.files?.[0])} className="hidden"/>
       <p className="px-2 text-center text-[11px] leading-5 text-zinc-600">Su iPhone e Android i pulsanti fotocamera aprono direttamente camera o videocamera. Il comportamento può variare in base al browser.</p>
-    </div> : <div className="overflow-hidden rounded-3xl border border-white/10 bg-zinc-900"><div className="relative">{file.type.startsWith("video/") ? <video src={preview ?? ""} controls playsInline className="aspect-[4/3] w-full object-cover"/> : <img src={preview ?? ""} alt="Anteprima" className="aspect-[4/3] w-full object-cover"/>}<button type="button" onClick={clearFile} disabled={uploading} className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-black/70"><X size={18}/></button></div><div className="flex items-center gap-2 p-4 text-sm font-bold text-lime-400"><Check size={17}/>Prova pronta</div></div>}
+    </div> : <div className="overflow-hidden rounded-3xl border border-white/10 bg-zinc-900"><div className="relative">{file.type.startsWith("video/") ? <video src={preview ?? ""} controls playsInline className="aspect-[4/3] w-full object-cover"/> : <img src={preview ?? ""} alt="Anteprima" className="aspect-[4/3] w-full object-cover"/>}<button type="button" onClick={clearFile} disabled={uploading} className="absolute right-3 top-3 flex h-10 w-10 items-center justify-center rounded-full bg-black/70"><X size={18}/></button></div><div className="p-4"><div className="flex items-center gap-2 text-sm font-bold text-lime-400"><Check size={17}/>Prova pronta</div>{originalSize && file && <p className="mt-1 text-xs text-zinc-500">{file.type.startsWith("image/") && file.size < originalSize ? `Ottimizzata: ${mb(originalSize)} MB → ${mb(file.size)} MB` : `${mb(file.size)} MB`}</p>}</div></div>}
 
     <textarea value={caption} onChange={(e)=>setCaption(e.target.value)} maxLength={250} rows={3} placeholder='Aggiungi una frase… tipo “Ve l’avevo detto 😂”' className="w-full resize-none rounded-2xl border border-white/10 bg-zinc-900 p-4 outline-none placeholder:text-zinc-600 focus:border-lime-400"/>
 
     {wallEnabled && <button type="button" onClick={()=>setIsPublic(!isPublic)} className={`flex w-full items-center gap-4 rounded-2xl border p-4 text-left ${isPublic ? "border-fuchsia-400/40 bg-fuchsia-400/10" : "border-white/10 bg-zinc-900"}`}><div className={`flex h-11 w-11 items-center justify-center rounded-full ${isPublic ? "bg-fuchsia-400 text-black" : "bg-zinc-800 text-zinc-400"}`}>{isPublic ? <Globe2 size={20}/> : <Lock size={20}/>}</div><div className="flex-1"><p className="font-black">{isPublic ? "Pubblica su The Wall" : "Solo nel gruppo"}</p><p className="mt-1 text-xs text-zinc-500">{isPublic ? "Andrà nel feed solo dopo l'approvazione del gruppo." : "Resta visibile solo ai membri del gruppo."}</p></div><div className={`h-6 w-11 rounded-full p-1 ${isPublic ? "bg-fuchsia-400" : "bg-zinc-700"}`}><div className={`h-4 w-4 rounded-full bg-white transition ${isPublic ? "translate-x-5" : ""}`}/></div></button>}
 
+    {optimizing && <div className="rounded-2xl bg-cyan-400/10 p-4 text-sm font-bold text-cyan-300">Ottimizzo la foto prima dell’upload…</div>}
     {error && <div className="rounded-2xl bg-red-500/10 p-4 text-sm font-bold text-red-400">{error}</div>}
-    <button type="button" onClick={handleSubmit} disabled={!file || uploading} className="flex h-16 w-full items-center justify-center gap-3 rounded-3xl bg-lime-400 text-lg font-black text-black disabled:opacity-40">{uploading ? <><Loader2 size={22} className="animate-spin"/>CARICAMENTO...</> : <><Upload size={22}/>INVIA LA PROVA</>}</button>
+    <button type="button" onClick={handleSubmit} disabled={!file || uploading || optimizing} className="flex h-16 w-full items-center justify-center gap-3 rounded-3xl bg-lime-400 text-lg font-black text-black disabled:opacity-40">{uploading ? <><Loader2 size={22} className="animate-spin"/>CARICAMENTO...</> : <><Upload size={22}/>INVIA LA PROVA</>}</button>
   </div>;
 }

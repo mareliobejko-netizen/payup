@@ -9,6 +9,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { toggleLike } from "@/app/feed/actions";
 import ShareButton from "@/app/feed/share-button";
 import ProofMedia from "@/components/proof-media";
+import ReportProof from "@/components/report-proof";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -147,7 +148,7 @@ export default async function PublicPostPage({ params }: Props) {
                   {Number(post.likes)}
                 </Link>
               )}
-              <ShareButton path={`/post/${post.proofId}`} />
+              <div className="flex items-center gap-2"><ShareButton path={`/post/${post.proofId}`} />{currentUser && <ReportProof proofId={post.proofId} back={`/post/${post.proofId}`} />}</div>
             </div>
           </div>
         </article>

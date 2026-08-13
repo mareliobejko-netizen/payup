@@ -8,20 +8,30 @@ import {
   Save,
   ShieldCheck,
   UserRound,
+  Laptop,
+  RotateCcw,
+  Copy,
 } from "lucide-react";
-import { requireUser, getMemberships } from "@/lib/auth";
+import { requireUser, getMemberships, getCurrentSessionHash } from "@/lib/auth";
+import { db } from "@/db";
+import { sessions } from "@/db/schema";
+import { desc, eq } from "drizzle-orm";
 import AvatarUploader from "./avatar-uploader";
 import PwaManager from "@/components/pwa-manager";
 import {
   logoutAction,
   updatePasswordAction,
   updateUsernameAction,
+  generateRecoveryCodeAction,
+  revokeSessionAction,
+  revokeOtherSessionsAction,
 } from "./actions";
 
 type Props = {
   searchParams: Promise<{
     error?: string;
     success?: string;
+    recovery?: string;
   }>;
 };
 
@@ -29,6 +39,8 @@ export default async function ProfilePage({ searchParams }: Props) {
   const user = await requireUser();
   const memberships = await getMemberships(user.id);
   const params = await searchParams;
+  const currentSessionHash = await getCurrentSessionHash();
+  const sessionList = await db.select().from(sessions).where(eq(sessions.userId,user.id)).orderBy(desc(sessions.lastSeenAt));
 
   return (
     <main className="min-h-screen bg-zinc-950 text-white">
@@ -149,6 +161,19 @@ export default async function ProfilePage({ searchParams }: Props) {
               CAMBIA PASSWORD
             </button>
           </form>
+        </section>
+
+
+        <section className="mt-5 rounded-3xl border border-white/5 bg-zinc-900 p-5">
+          <div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-cyan-400/10 text-cyan-300"><RotateCcw size={19}/></div><div><h3 className="font-black">Recupero account</h3><p className="text-xs text-zinc-500">Genera un codice da conservare fuori da PayUp.</p></div></div>
+          {params.recovery && <div className="mt-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/10 p-4"><p className="text-xs font-black uppercase tracking-wide text-cyan-300">Salvalo adesso</p><p className="mt-2 break-all font-mono text-xl font-black tracking-widest">{params.recovery}</p><p className="mt-2 text-xs text-zinc-500">Per sicurezza non potremo mostrartelo di nuovo. Generandone uno nuovo, il precedente smette di funzionare.</p></div>}
+          <form action={generateRecoveryCodeAction} className="mt-4"><button className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-cyan-400/10 font-black text-cyan-300"><Copy size={17}/> GENERA NUOVO CODICE</button></form>
+        </section>
+
+        <section className="mt-5 rounded-3xl border border-white/5 bg-zinc-900 p-5">
+          <div className="flex items-center gap-3"><div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-400/10 text-violet-300"><Laptop size={19}/></div><div><h3 className="font-black">Dispositivi collegati</h3><p className="text-xs text-zinc-500">Controlla e chiudi le sessioni che non riconosci.</p></div></div>
+          <div className="mt-4 space-y-3">{sessionList.map((s)=><div key={s.id} className="rounded-2xl bg-zinc-950 p-4"><div className="flex items-start justify-between gap-3"><div><p className="font-black">{s.deviceName??'Dispositivo'}</p><p className="mt-1 text-xs text-zinc-500">Ultima attività {s.lastSeenAt.toLocaleString('it-IT')}</p>{s.tokenHash===currentSessionHash&&<span className="mt-2 inline-flex rounded-full bg-lime-400/10 px-2 py-1 text-[10px] font-black text-lime-300">QUESTO DISPOSITIVO</span>}</div>{s.tokenHash!==currentSessionHash&&<form action={revokeSessionAction}><input type="hidden" name="sessionId" value={s.id}/><button className="rounded-xl bg-red-500/10 px-3 py-2 text-xs font-black text-red-300">DISCONNETTI</button></form>}</div></div>)}</div>
+          {sessionList.length>1&&<form action={revokeOtherSessionsAction} className="mt-4"><button className="h-12 w-full rounded-2xl bg-zinc-800 text-sm font-black">CHIUDI TUTTE LE ALTRE SESSIONI</button></form>}
         </section>
 
 

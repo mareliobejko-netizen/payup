@@ -15,6 +15,8 @@ export const users = pgTable("users", {
   email: varchar("email", { length: 255 }).unique(),
   passwordHash: text("password_hash"),
   avatarUrl: text("avatar_url"),
+  recoveryCodeHash: varchar("recovery_code_hash", { length: 64 }),
+  recoveryCodeCreatedAt: timestamp("recovery_code_created_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -23,6 +25,10 @@ export const sessions = pgTable("sessions", {
   userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   tokenHash: varchar("token_hash", { length: 64 }).notNull().unique(),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  userAgent: text("user_agent"),
+  deviceName: varchar("device_name", { length: 120 }),
+  ipHash: varchar("ip_hash", { length: 64 }),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -133,3 +139,27 @@ export const activityLogs = pgTable("activity_logs", {
   href: text("href"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+
+export const authAttempts = pgTable("auth_attempts", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  identifierHash: varchar("identifier_hash", { length: 64 }).notNull().unique(),
+  attempts: integer("attempts").default(0).notNull(),
+  windowStartedAt: timestamp("window_started_at", { withTimezone: true }).defaultNow().notNull(),
+  blockedUntil: timestamp("blocked_until", { withTimezone: true }),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const proofReports = pgTable(
+  "proof_reports",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    proofId: uuid("proof_id").references(() => proofs.id, { onDelete: "cascade" }).notNull(),
+    reportedBy: uuid("reported_by").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    reason: varchar("reason", { length: 40 }).notNull(),
+    note: text("note"),
+    status: varchar("status", { length: 20 }).default("open").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.proofId, table.reportedBy)]
+);

@@ -1,6 +1,6 @@
 {
   "name": "payup",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -14,7 +14,8 @@
     "db:friends-migrate": "tsx src/db/friends-migrate.ts",
     "db:v06-migrate": "tsx src/db/v06-migrate.ts",
     "db:v07-migrate": "tsx src/db/v07-migrate.ts",
-    "push:keys": "node scripts/generate-vapid.mjs"
+    "push:keys": "node scripts/generate-vapid.mjs",
+    "db:v08-migrate": "tsx src/db/v08-migrate.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "latest",
@@ -25,14 +26,13 @@
     "next": "latest",
     "react": "latest",
     "react-dom": "latest",
-    "web-push": "^3.6.7"
+    "web-push": "latest"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "latest",
     "@types/node": "latest",
     "@types/react": "latest",
     "@types/react-dom": "latest",
-    "@types/web-push": "latest",
     "dotenv": "latest",
     "drizzle-kit": "latest",
     "eslint": "latest",
@@ -40,6 +40,7 @@
     "postcss": "latest",
     "tailwindcss": "latest",
     "tsx": "latest",
-    "typescript": "latest"
+    "typescript": "latest",
+    "@types/web-push": "latest"
   }
 }
