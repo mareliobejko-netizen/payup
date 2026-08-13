@@ -36,3 +36,19 @@ button,a { touch-action: manipulation; }
 ::selection{background:#a3e635;color:#09090b}
 button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid #a3e635;outline-offset:2px}
 @media (prefers-reduced-motion:no-preference){.payup-pop{animation:payupPop .22s cubic-bezier(.2,.8,.2,1) both}@keyframes payupPop{from{opacity:0;transform:scale(.97)}to{opacity:1;transform:scale(1)}}}
+
+/* iPhone / PWA safe-area: mantiene i controlli sotto notch e Dynamic Island. */
+body {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top));
+}
+.safe-sticky-top {
+  top: env(safe-area-inset-top, 0px);
+}
+@media (display-mode: standalone) {
+  body {
+    min-height: 100dvh;
+  }
+}
