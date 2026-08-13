@@ -36,6 +36,7 @@ export default async function PenaltyPage({ params }: Props) {
     avatarUrl: users.avatarUrl,
     wallEnabled: groups.wallEnabled,
     defaultProofPublic: groups.defaultProofPublic,
+    groupName: groups.name,
     publicShare: penalties.publicShare,
   }).from(penalties).innerJoin(users, eq(penalties.assignedTo, users.id))
     .innerJoin(groups, eq(penalties.groupId, groups.id)).where(eq(penalties.id, id)).limit(1);
@@ -62,7 +63,7 @@ export default async function PenaltyPage({ params }: Props) {
 
           <section className="grid grid-cols-2 gap-3"><InfoCard icon={<CalendarDays size={18} />} title="Assegnata" value={formatDate(penalty.createdAt)} /><InfoCard icon={<Clock3 size={18} />} title="Stato" value={statusLabel(penalty.status)} />{penalty.dueAt && <div className="col-span-2"><InfoCard icon={<CalendarDays size={18}/>} title="Scadenza" value={formatDateTime(penalty.dueAt)}/></div>}</section>
 
-          <PenaltySharePanel penaltyId={penalty.id} isPublic={penalty.publicShare} username={penalty.username} title={penalty.title} />{canManage && <section className="grid grid-cols-2 gap-3"><Link href={`/penalties/${penalty.id}/edit`} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white font-black text-black"><Pencil size={17}/>MODIFICA</Link><form action={deletePenalty}><input type="hidden" name="id" value={penalty.id}/><ConfirmButton message="Vuoi davvero cancellare questa penitenza? L’operazione non si può annullare." className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-red-500/10 font-black text-red-400"><Trash2 size={17}/>CANCELLA</ConfirmButton></form></section>}
+          <PenaltySharePanel penaltyId={penalty.id} isPublic={penalty.publicShare} username={penalty.username} title={penalty.title} groupName={penalty.groupName} />{canManage && <section className="grid grid-cols-2 gap-3"><Link href={`/penalties/${penalty.id}/edit`} className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-white font-black text-black"><Pencil size={17}/>MODIFICA</Link><form action={deletePenalty}><input type="hidden" name="id" value={penalty.id}/><ConfirmButton message="Vuoi davvero cancellare questa penitenza? L’operazione non si può annullare." className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-red-500/10 font-black text-red-400"><Trash2 size={17}/>CANCELLA</ConfirmButton></form></section>}
 
           {penalty.status === "pending" && isAssignedUser && <section><div className="mb-4"><div className="flex items-center gap-2"><Camera size={20} className="text-lime-400" /><h3 className="text-lg font-black">L&apos;hai fatto?</h3></div><p className="mt-2 text-sm leading-6 text-zinc-500">Carica foto o video e lascia decidere al gruppo. 😈</p></div><ProofUploader penaltyId={penalty.id} wallEnabled={penalty.wallEnabled} defaultPublic={penalty.defaultProofPublic} /></section>}
           {penalty.status === "pending" && !isAssignedUser && <section className="rounded-3xl border border-white/10 bg-zinc-900 p-6 text-center"><p className="text-4xl">👀</p><p className="mt-3 font-black">Aspettiamo {penalty.username}</p><p className="mt-2 text-sm text-zinc-500">Solo chi ha ricevuto la penitenza può caricare la prova.</p></section>}

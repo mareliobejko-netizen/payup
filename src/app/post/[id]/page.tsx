@@ -117,7 +117,7 @@ export default async function PublicPostPage({ params }: Props) {
                   {Number(post.likes)}
                 </Link>
               )}
-              <div className="flex flex-wrap items-center gap-2"><ShareButton path={`/post/${post.proofId}`} title={`${post.username} su The Wall · PayUp`} text={`✅ ${post.penaltyTitle}`} /><StoryShareButton imagePath={`/post/${post.proofId}/story`} filename={`payup-${post.username}-wall.png`} text={`✅ ${post.username}: ${post.penaltyTitle}`} />{currentUser && <ReportProof proofId={post.proofId} back={`/post/${post.proofId}`} />}</div>
+              <div className="flex flex-wrap items-center gap-2"><ShareButton path={`/post/${post.proofId}`} title={`${post.username} su The Wall · PayUp`} text={`✅ ${post.penaltyTitle}`} /><StoryShareButton kind="wall" username={post.username} title={post.penaltyTitle} groupName={post.groupName} likes={Number(post.likes)} filename={`payup-${post.username}-wall.png`} />{currentUser && <ReportProof proofId={post.proofId} back={`/post/${post.proofId}`} />}</div>
             </div>
           </div>
         </article>
