@@ -3,6 +3,8 @@ import { and, eq } from "drizzle-orm";
 import { ArrowLeft, Check, Crown, History, KeyRound, LogOut, Plus, RefreshCw, Settings, Shield, Trash2, UsersRound } from "lucide-react";
 import InviteTools from "./invite-tools";
 import ConfirmButton from "@/components/confirm-button";
+import PayUpAvatar from "@/components/payup-avatar";
+import { resolveAvatarBadges } from "@/lib/avatar-system";
 import { db } from "@/db";
 import { groupMembers, groups, users } from "@/db/schema";
 import { getActiveGroup, getMemberships, requireUser } from "@/lib/auth";
@@ -42,7 +44,7 @@ export default async function GroupPage({ searchParams }: Props) {
       <section className="mt-5 rounded-3xl border border-white/5 bg-zinc-900 p-5">
         <h2 className="flex items-center gap-2 font-black"><UsersRound size={18} className="text-lime-400"/>Membri</h2>
         <div className="mt-4 space-y-3">{members.map((member) => <div key={member.userId} className="flex items-center gap-3 rounded-2xl bg-zinc-950 p-3">
-          <Avatar username={member.username} avatarUrl={member.avatarUrl}/>
+          <PayUpAvatar username={member.username} avatarUrl={member.avatarUrl} badges={resolveAvatarBadges({ role: member.role })}/>
           <div className="min-w-0 flex-1"><div className="flex items-center gap-2"><p className="truncate font-black">{member.username}</p>{member.createdBy === member.userId && <Crown size={14} className="text-amber-300"/>}</div><p className="text-xs text-zinc-500">{member.role === "admin" ? "Admin" : member.role === "moderator" ? "Moderatore" : "Membro"}</p></div>{isAdmin && member.userId !== user.id && member.createdBy !== member.userId && <form action={changeRoleAction}><input type="hidden" name="groupId" value={active.groupId}/><input type="hidden" name="userId" value={member.userId}/><select name="role" defaultValue={member.role} className="rounded-xl bg-zinc-800 px-2 py-2 text-xs font-black"><option value="member">Membro</option><option value="moderator">Moderatore</option></select><button className="ml-1 rounded-xl bg-zinc-700 px-2 py-2 text-[10px] font-black">OK</button></form>}
           {isManager && member.userId !== user.id && member.createdBy !== member.userId && <form action={removeMemberAction}><input type="hidden" name="groupId" value={active.groupId}/><input type="hidden" name="userId" value={member.userId}/><ConfirmButton title="Rimuovi membro" message="Vuoi davvero rimuovere questo membro dal gruppo?" className="flex h-9 w-9 items-center justify-center rounded-xl bg-red-500/10 text-red-400"><Trash2 size={16}/></ConfirmButton></form>}
         </div>)}</div>
@@ -64,4 +66,3 @@ export default async function GroupPage({ searchParams }: Props) {
   </div></main>;
 }
 
-function Avatar({ username, avatarUrl }: { username: string; avatarUrl: string | null }) { return <div className="h-11 w-11 shrink-0 overflow-hidden rounded-full bg-lime-400 text-black">{avatarUrl ? <img src={avatarUrl} alt={username} className="h-full w-full object-cover"/> : <div className="flex h-full w-full items-center justify-center font-black">{username[0]?.toUpperCase()}</div>}</div>; }

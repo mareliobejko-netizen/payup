@@ -6,6 +6,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { createSession } from "@/lib/auth";
+import { AVATAR_PRESETS } from "@/lib/avatar-system";
 
 function registerError(message: string, next?: string): never {
   const suffix = next ? `&next=${encodeURIComponent(next)}` : "";
@@ -17,6 +18,7 @@ export async function registerAction(formData: FormData) {
   const email = formData.get("email")?.toString().trim().toLowerCase();
   const password = formData.get("password")?.toString() ?? "";
   const confirmPassword = formData.get("confirmPassword")?.toString() ?? "";
+  const avatarUrl = formData.get("avatarUrl")?.toString() ?? AVATAR_PRESETS[0].url;
   const next = formData.get("next")?.toString();
   const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
 
@@ -51,8 +53,12 @@ export async function registerAction(formData: FormData) {
     registerError("Username o email già utilizzati.", safeNext);
   }
 
+  if (!AVATAR_PRESETS.some((avatar) => avatar.url === avatarUrl)) {
+    registerError("Scegli un avatar PayUp valido.", safeNext);
+  }
+
   const passwordHash = await hash(password, 12);
-  const [user] = await db.insert(users).values({ username, email, passwordHash }).returning();
+  const [user] = await db.insert(users).values({ username, email, passwordHash, avatarUrl }).returning();
   await createSession(user.id);
   redirect(safeNext ?? "/onboarding");
 }
