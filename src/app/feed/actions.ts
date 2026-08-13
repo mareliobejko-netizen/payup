@@ -19,4 +19,5 @@ export async function toggleLike(formData: FormData) {
   if (existing) await db.delete(proofLikes).where(eq(proofLikes.id, existing.id));
   else await db.insert(proofLikes).values({ proofId, userId: user.id });
   revalidatePath("/feed");
+  revalidatePath(`/post/${proofId}`);
 }

@@ -58,3 +58,11 @@ npm run dev
 ## Versione 0.3
 
 Questa versione aggiunge avatar, ranking evoluto e gestione completa dei gruppi senza modifiche distruttive al database.
+
+## v0.4 - The Wall 2.0 + Camera
+
+- The Wall: tabs Recenti / Popolari
+- Public user profiles with public proof and received-like counts
+- Direct public post pages with share button
+- Proof capture: gallery, take photo, or record video on supported mobile browsers
+- Public/private proof choice remains unchanged: public posts appear only after group approval
