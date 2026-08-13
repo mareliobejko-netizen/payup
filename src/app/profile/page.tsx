@@ -10,6 +10,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { requireUser, getMemberships } from "@/lib/auth";
+import AvatarUploader from "./avatar-uploader";
 import {
   logoutAction,
   updatePasswordAction,
@@ -59,10 +60,8 @@ export default async function ProfilePage({ searchParams }: Props) {
         )}
 
         <section className="mt-8 rounded-3xl bg-zinc-900 p-5">
-          <div className="flex h-16 w-16 items-center justify-center rounded-full bg-lime-400 text-2xl font-black text-black">
-            {user.username[0]?.toUpperCase()}
-          </div>
-          <h2 className="mt-4 text-2xl font-black">@{user.username}</h2>
+          <AvatarUploader userId={user.id} username={user.username} avatarUrl={user.avatarUrl} />
+          <h2 className="mt-5 text-2xl font-black">@{user.username}</h2>
           <p className="mt-2 flex items-center gap-2 text-sm text-zinc-500">
             <Mail size={15} />
             {user.email}

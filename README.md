@@ -1,78 +1,60 @@
 # PayUp
 
-App mobile-first per gestire penitenze tra amici, verificarle con prove e voti e condividere facoltativamente le prove approvate su **The Wall**.
-
-## Funzioni incluse
-
-- Login/register semplice con username, email e password
-- Password hash bcrypt + sessioni tramite cookie HttpOnly
-- Più gruppi per ogni utente
-- Creazione gruppo e ingresso tramite codice invito
-- Selettore del gruppo attivo
-- Penitenze separate per gruppo
-- Prove foto/video tramite Vercel Blob
-- Votazione `CONFERMO` / `FAKE`
-- Blocco autovoto e doppio voto
-- Soglia configurabile di voti per completare una prova
-- Ranking **Hall of Shame** per gruppo
-- **The Wall**: feed pubblico delle sole prove approvate e rese pubbliche
-- Like ai post pubblici
+PayUp è una web app mobile-first per gruppi di amici: chi perde riceve una penitenza, carica una prova e il gruppo decide se l'ha fatta davvero.
 
 ## Stack
 
 - Next.js 16 + TypeScript
-- Tailwind CSS 4
-- Neon PostgreSQL
-- Drizzle ORM
-- Vercel Blob
-- bcryptjs
+- Tailwind CSS
+- Neon PostgreSQL + Drizzle ORM
+- Vercel Blob per foto/video/avatar
+- Autenticazione semplice PayUp con username/email + password hashata
 
-## Variabili ambiente
+## Funzioni attuali
 
-Crea `.env` e `.env.local` con:
+- Login e registrazione senza provider esterni
+- Gruppi multipli con codice invito
+- Cambio gruppo attivo
+- Creazione penitenze
+- Upload foto/video come prova
+- Voto `CONFERMO / FAKE`
+- Blocco autovoto e doppio voto
+- Chiusura automatica della penitenza
+- The Wall con prove pubbliche approvate e like
+- Profilo con cambio username/password
+- Avatar profilo
+- Hall of Shame con ranking, affidabilità e titoli scherzosi
+- Gestione gruppo: rinomina, rigenera codice, rimuovi membri, esci dal gruppo
+
+## Setup
+
+1. Copia `.env.example` in `.env.local`.
+2. Imposta:
 
 ```env
-DATABASE_URL="postgresql://..."
-BLOB_READ_WRITE_TOKEN="vercel_blob_..."
+DATABASE_URL="..."
+BLOB_READ_WRITE_TOKEN="..."
 ```
 
-Non servono chiavi Clerk.
+3. Installa le dipendenze:
 
-## Aggiornamento dal repository PayUp precedente
-
-Conserva i tuoi `.env` / `.env.local`, poi usa questa nuova cartella completa e lancia:
-
-```powershell
+```bash
 npm install
+```
+
+4. Se il database è già stato migrato alla versione Friends non serve una nuova migrazione per gli avatar/ranking/gruppi. Per una nuova installazione:
+
+```bash
+npm run db:migrate
 npm run db:friends-migrate
-Remove-Item -Recurse -Force .next -ErrorAction SilentlyContinue
+```
+
+5. Avvia:
+
+```bash
 npm run dev
 ```
 
-`db:friends-migrate` aggiunge in modo non distruttivo:
+## Versione 0.3
 
-- `users.password_hash`
-- tabella `sessions`
-- `proofs.is_public`
-- `proofs.published_at`
-- tabella `proof_likes`
-- indici necessari
-
-Le vecchie penitenze, prove, gruppi e utenti non vengono cancellati.
-
-## Rotte principali
-
-- `/login`
-- `/register`
-- `/onboarding`
-- `/` Home del gruppo attivo
-- `/group` gestione e cambio gruppo
-- `/add` nuova penitenza
-- `/penalties/[id]` dettaglio e prova
-- `/ranking` Hall of Shame
-- `/feed` The Wall
-- `/profile`
-
-## Nota privacy media
-
-In questa versione Vercel Blob usa URL pubblici. Una prova marcata "Solo nel gruppo" non compare in The Wall, ma il file è ancora accessibile a chi possiede l'URL diretto. Per privacy forte va introdotto storage privato/proxy autenticato.
+Questa versione aggiunge avatar, ranking evoluto e gestione completa dei gruppi senza modifiche distruttive al database.

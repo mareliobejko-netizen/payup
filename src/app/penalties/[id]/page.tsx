@@ -25,6 +25,7 @@ export default async function PenaltyPage({ params }: Props) {
     completedAt: penalties.completedAt,
     assignedTo: penalties.assignedTo,
     username: users.username,
+    avatarUrl: users.avatarUrl,
   }).from(penalties).innerJoin(users, eq(penalties.assignedTo, users.id)).where(eq(penalties.id, id)).limit(1);
 
   if (!penalty) notFound();
@@ -42,7 +43,7 @@ export default async function PenaltyPage({ params }: Props) {
         <header className="flex items-center gap-4 border-b border-white/5 px-5 py-5"><Link href="/" className="flex h-11 w-11 items-center justify-center rounded-full bg-zinc-900"><ArrowLeft size={20} /></Link><div><p className="text-xs font-bold uppercase tracking-[0.25em] text-lime-400">PayUp</p><h1 className="text-xl font-black">Dettaglio penitenza</h1></div></header>
 
         <div className="space-y-6 px-5 py-6">
-          <section className="rounded-3xl border border-white/10 bg-zinc-900 p-5"><div className="flex items-center gap-4"><div className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500/10 text-2xl font-black text-red-400">{penalty.username.charAt(0).toUpperCase()}</div><div><p className="text-sm text-zinc-500">Il colpevole</p><p className="text-2xl font-black">{penalty.username}</p></div></div></section>
+          <section className="rounded-3xl border border-white/10 bg-zinc-900 p-5"><div className="flex items-center gap-4"><div className="h-16 w-16 overflow-hidden rounded-full bg-red-500/10 text-2xl font-black text-red-400">{penalty.avatarUrl ? <img src={penalty.avatarUrl} alt={penalty.username} className="h-full w-full object-cover"/> : <div className="flex h-full w-full items-center justify-center">{penalty.username.charAt(0).toUpperCase()}</div>}</div><div><p className="text-sm text-zinc-500">Il colpevole</p><p className="text-2xl font-black">{penalty.username}</p></div></div></section>
 
           <section className="rounded-3xl bg-gradient-to-br from-red-500/10 to-zinc-900 p-5"><div className="mb-4 flex items-center gap-2 text-red-400"><Skull size={20} /><span className="text-xs font-black uppercase tracking-wider">Penitenza</span></div><h2 className="text-2xl font-black leading-tight">{penalty.title}</h2>{penalty.description && <p className="mt-3 leading-6 text-zinc-400">{penalty.description}</p>}{penalty.amountCents !== null && <div className="mt-5 flex items-center gap-3 rounded-2xl bg-black/20 p-4"><Banknote className="text-emerald-400" /><div><p className="text-xs font-bold uppercase text-zinc-500">Importo</p><p className="text-xl font-black text-emerald-400">{formatMoney(penalty.amountCents)}</p></div></div>}</section>
 

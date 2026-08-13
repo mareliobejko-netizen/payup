@@ -73,6 +73,20 @@ export async function updatePasswordAction(formData: FormData) {
   profileRedirect("success", "Password aggiornata correttamente.");
 }
 
+
+export async function updateAvatarAction(avatarUrl: string) {
+  const user = await requireUser();
+  if (!avatarUrl || !avatarUrl.startsWith("https://")) {
+    profileRedirect("error", "URL avatar non valida.");
+  }
+
+  await db.update(users).set({ avatarUrl }).where(eq(users.id, user.id));
+  revalidatePath("/profile");
+  revalidatePath("/");
+  revalidatePath("/feed");
+  revalidatePath("/ranking");
+}
+
 export async function logoutAction() {
   await deleteCurrentSession();
   redirect("/login");

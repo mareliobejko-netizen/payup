@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AddPenaltyPage() {
   const { group } = await requirePayupContext();
-  const members = await db.select({ id: users.id, username: users.username })
+  const members = await db.select({ id: users.id, username: users.username, avatarUrl: users.avatarUrl })
     .from(groupMembers).innerJoin(users, eq(groupMembers.userId, users.id))
     .where(eq(groupMembers.groupId, group.groupId));
 
@@ -26,7 +26,7 @@ export default async function AddPenaltyPage() {
           <section>
             <div className="mb-3 flex items-center gap-2"><Skull size={18} className="text-red-400" /><label className="text-sm font-black uppercase tracking-wide">Chi ha perso?</label></div>
             <div className="grid grid-cols-2 gap-3">
-              {members.map((member) => <label key={member.id} className="cursor-pointer"><input type="radio" name="assignedTo" value={member.id} required className="peer sr-only" /><div className="rounded-2xl border border-white/10 bg-zinc-900 p-4 transition peer-checked:border-lime-400 peer-checked:bg-lime-400/10"><div className="mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-zinc-800 text-lg font-black">{member.username.charAt(0).toUpperCase()}</div><p className="font-black">{member.username}</p><p className="mt-1 text-xs text-zinc-500">Seleziona</p></div></label>)}
+              {members.map((member) => <label key={member.id} className="cursor-pointer"><input type="radio" name="assignedTo" value={member.id} required className="peer sr-only" /><div className="rounded-2xl border border-white/10 bg-zinc-900 p-4 transition peer-checked:border-lime-400 peer-checked:bg-lime-400/10"><div className="mb-3 h-11 w-11 overflow-hidden rounded-full bg-zinc-800 text-lg font-black">{member.avatarUrl ? <img src={member.avatarUrl} alt={member.username} className="h-full w-full object-cover"/> : <div className="flex h-full w-full items-center justify-center">{member.username.charAt(0).toUpperCase()}</div>}</div><p className="font-black">{member.username}</p><p className="mt-1 text-xs text-zinc-500">Seleziona</p></div></label>)}
             </div>
           </section>
 
