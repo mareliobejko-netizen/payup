@@ -38,3 +38,30 @@ export async function submitProof({ penaltyId, mediaUrl, mediaType, caption, isP
   revalidatePath(`/penalties/${penaltyId}`);
   redirect("/");
 }
+
+
+export async function enablePenaltyPublicShare(penaltyId: string) {
+  const currentUser = await requireUser();
+  const [penalty] = await db.select().from(penalties).where(eq(penalties.id, penaltyId)).limit(1);
+  if (!penalty) throw new Error("Penitenza non trovata");
+  const [membership] = await db.select({ role: groupMembers.role }).from(groupMembers).where(and(eq(groupMembers.groupId, penalty.groupId), eq(groupMembers.userId, currentUser.id))).limit(1);
+  if (!membership) throw new Error("Non fai parte del gruppo");
+  const allowed = currentUser.id === penalty.createdBy || currentUser.id === penalty.assignedTo || ["admin","moderator"].includes(membership.role);
+  if (!allowed) throw new Error("Non puoi rendere pubblica questa penitenza");
+  await db.update(penalties).set({ publicShare: true, publicSharedAt: new Date() }).where(eq(penalties.id, penaltyId));
+  revalidatePath(`/penalties/${penaltyId}`); revalidatePath(`/challenge/${penaltyId}`);
+  return { ok: true };
+}
+
+export async function disablePenaltyPublicShare(penaltyId: string) {
+  const currentUser = await requireUser();
+  const [penalty] = await db.select().from(penalties).where(eq(penalties.id, penaltyId)).limit(1);
+  if (!penalty) throw new Error("Penitenza non trovata");
+  const [membership] = await db.select({ role: groupMembers.role }).from(groupMembers).where(and(eq(groupMembers.groupId, penalty.groupId), eq(groupMembers.userId, currentUser.id))).limit(1);
+  if (!membership) throw new Error("Non fai parte del gruppo");
+  const allowed = currentUser.id === penalty.createdBy || currentUser.id === penalty.assignedTo || membership.role === "admin";
+  if (!allowed) throw new Error("Non puoi modificare la condivisione");
+  await db.update(penalties).set({ publicShare: false }).where(eq(penalties.id, penaltyId));
+  revalidatePath(`/penalties/${penaltyId}`); revalidatePath(`/challenge/${penaltyId}`);
+  return { ok: true };
+}

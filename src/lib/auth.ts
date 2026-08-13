@@ -75,6 +75,7 @@ export async function getCurrentUser() {
     .limit(1);
 
   if (!result) return null;
+  if (result.user.bannedUntil && result.user.bannedUntil > new Date()) return null;
   void db.update(sessions).set({ lastSeenAt: new Date() }).where(eq(sessions.id, result.sessionId)).catch(()=>{});
   return result.user;
 }

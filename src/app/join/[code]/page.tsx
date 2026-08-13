@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { eq } from "drizzle-orm";
 import { KeyRound, LogIn, Skull, UserPlus, UsersRound } from "lucide-react";
@@ -8,6 +9,14 @@ import { getCurrentUser } from "@/lib/auth";
 import { joinFromLink } from "./actions";
 
 type Props={params:Promise<{code:string}>;searchParams:Promise<{error?:string}>};
+
+export async function generateMetadata({params}:Props):Promise<Metadata>{
+ const {code}=await params;const normalized=decodeURIComponent(code).toUpperCase();
+ const [group]=await db.select({name:groups.name}).from(groups).where(eq(groups.inviteCode,normalized)).limit(1);
+ if(!group)return{title:"Invito PayUp"};
+ const title=`Entra in ${group.name} · PayUp`;const description=`Sei stato invitato in ${group.name}. Unisciti al gruppo e scopri chi perde e paga.`;
+ return{title,description,openGraph:{title,description,type:"website"},twitter:{card:"summary_large_image",title,description}}
+}
 export default async function JoinPage({params,searchParams}:Props){
   const {code}=await params; const {error}=await searchParams; const normalized=decodeURIComponent(code).toUpperCase();
   const [group]=await db.select({name:groups.name,inviteCode:groups.inviteCode}).from(groups).where(eq(groups.inviteCode, normalized)).limit(1);

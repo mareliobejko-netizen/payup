@@ -4,48 +4,16 @@ import { and, eq, isNotNull, sql } from "drizzle-orm";
 import { ArrowLeft, Heart, LogIn, Skull, UserPlus } from "lucide-react";
 import { notFound } from "next/navigation";
 import { db } from "@/db";
-import { groups, penalties, proofLikes, proofs, users } from "@/db/schema";
+import { proofLikes } from "@/db/schema";
 import { getCurrentUser } from "@/lib/auth";
 import { toggleLike } from "@/app/feed/actions";
 import ShareButton from "@/app/feed/share-button";
 import ProofMedia from "@/components/proof-media";
 import ReportProof from "@/components/report-proof";
+import StoryShareButton from "@/components/story-share-button";
+import { getPublicPost } from "@/lib/public-share";
 
 type Props = { params: Promise<{ id: string }> };
-
-async function getPublicPost(id: string) {
-  const [post] = await db
-    .select({
-      proofId: proofs.id,
-      mediaUrl: proofs.mediaUrl,
-      mediaType: proofs.mediaType,
-      caption: proofs.caption,
-      publishedAt: proofs.publishedAt,
-      username: users.username,
-      avatarUrl: users.avatarUrl,
-      groupName: groups.name,
-      penaltyTitle: penalties.title,
-      likes: sql<number>`count(${proofLikes.id})`,
-    })
-    .from(proofs)
-    .innerJoin(penalties, eq(proofs.penaltyId, penalties.id))
-    .innerJoin(users, eq(proofs.uploadedBy, users.id))
-    .innerJoin(groups, eq(penalties.groupId, groups.id))
-    .leftJoin(proofLikes, eq(proofLikes.proofId, proofs.id))
-    .where(
-      and(
-        eq(proofs.id, id),
-        eq(proofs.isPublic, true),
-        eq(proofs.isHidden, false),
-        eq(penalties.status, "completed"),
-        isNotNull(proofs.publishedAt),
-      ),
-    )
-    .groupBy(proofs.id, users.username, users.avatarUrl, groups.name, penalties.title)
-    .limit(1);
-
-  return post ?? null;
-}
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { id } = await params;
@@ -65,13 +33,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       title,
       description,
       type: "article",
-      images: post.mediaType === "image" ? [{ url: post.mediaUrl, alt: post.penaltyTitle }] : undefined,
+
     },
     twitter: {
-      card: post.mediaType === "image" ? "summary_large_image" : "summary",
+      card: "summary_large_image",
       title,
       description,
-      images: post.mediaType === "image" ? [post.mediaUrl] : undefined,
+
     },
   };
 }
@@ -149,7 +117,7 @@ export default async function PublicPostPage({ params }: Props) {
                   {Number(post.likes)}
                 </Link>
               )}
-              <div className="flex items-center gap-2"><ShareButton path={`/post/${post.proofId}`} />{currentUser && <ReportProof proofId={post.proofId} back={`/post/${post.proofId}`} />}</div>
+              <div className="flex flex-wrap items-center gap-2"><ShareButton path={`/post/${post.proofId}`} title={`${post.username} su The Wall · PayUp`} text={`✅ ${post.penaltyTitle}`} /><StoryShareButton imagePath={`/post/${post.proofId}/story`} filename={`payup-${post.username}-wall.png`} text={`✅ ${post.username}: ${post.penaltyTitle}`} />{currentUser && <ReportProof proofId={post.proofId} back={`/post/${post.proofId}`} />}</div>
             </div>
           </div>
         </article>

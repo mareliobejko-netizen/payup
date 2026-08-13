@@ -17,6 +17,8 @@ export const users = pgTable("users", {
   avatarUrl: text("avatar_url"),
   recoveryCodeHash: varchar("recovery_code_hash", { length: 64 }),
   recoveryCodeCreatedAt: timestamp("recovery_code_created_at", { withTimezone: true }),
+  bannedUntil: timestamp("banned_until", { withTimezone: true }),
+  banReason: text("ban_reason"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -68,6 +70,8 @@ export const penalties = pgTable("penalties", {
   category: varchar("category", { length: 30 }).default("challenge").notNull(),
   dueAt: timestamp("due_at", { withTimezone: true }),
   status: varchar("status", { length: 30 }).default("pending").notNull(),
+  publicShare: boolean("public_share").default(false).notNull(),
+  publicSharedAt: timestamp("public_shared_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
   completedAt: timestamp("completed_at", { withTimezone: true }),
 });
@@ -166,3 +170,12 @@ export const proofReports = pgTable(
   },
   (table) => [unique().on(table.proofId, table.reportedBy)]
 );
+
+
+export const moderationNotes = pgTable("moderation_notes", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  targetUserId: uuid("target_user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  adminUserId: uuid("admin_user_id").references(() => users.id, { onDelete: "set null" }),
+  note: text("note").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});

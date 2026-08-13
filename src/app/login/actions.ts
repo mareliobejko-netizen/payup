@@ -30,6 +30,11 @@ export async function loginAction(formData: FormData) {
     loginError("Username/email o password non corretti.", safeNext);
   }
 
+  if (user.bannedUntil && user.bannedUntil > new Date()) {
+    const until = new Intl.DateTimeFormat("it-IT", { dateStyle: "medium", timeStyle: "short" }).format(user.bannedUntil);
+    loginError(`Account sospeso fino al ${until}.${user.banReason ? ` Motivo: ${user.banReason}` : ""}`, safeNext);
+  }
+
   await clearLoginFailures(limit.key);
   await createSession(user.id);
   redirect(safeNext ?? "/");
