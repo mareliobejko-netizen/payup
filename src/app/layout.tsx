@@ -1,15 +1,7 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
-
-export const metadata: Metadata = {
-  title: "PayUp",
-  description: "Penitenze, prove, ranking e sfide tra amici.",
-};
-
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return (
-    <html lang="it">
-      <body>{children}</body>
-    </html>
-  );
-}
+import PwaManager from "@/components/pwa-manager";
+import MobileSwipeNav from "@/components/mobile-swipe-nav";
+export const metadata:Metadata={title:{default:"PayUp",template:"%s · PayUp"},description:"Chi perde paga. E deve provarlo.",applicationName:"PayUp",appleWebApp:{capable:true,statusBarStyle:"black-translucent",title:"PayUp"},formatDetection:{telephone:false},icons:{apple:"/icons/apple-touch-icon.png"}};
+export const viewport:Viewport={themeColor:"#a3e635",viewportFit:"cover"};
+export default function RootLayout({children}:{children:React.ReactNode}){return <html lang="it"><body className="bg-zinc-950 antialiased"><PwaManager/><MobileSwipeNav/>{children}</body></html>}

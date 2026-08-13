@@ -67,6 +67,10 @@ export async function getMemberships(userId: string) {
       name: groups.name,
       inviteCode: groups.inviteCode,
       verificationVotes: groups.verificationVotes,
+      wallEnabled: groups.wallEnabled,
+      defaultProofPublic: groups.defaultProofPublic,
+      enabledCategories: groups.enabledCategories,
+      seasonStartedAt: groups.seasonStartedAt,
       createdAt: groups.createdAt,
     })
     .from(groupMembers)

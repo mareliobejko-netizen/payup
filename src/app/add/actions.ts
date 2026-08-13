@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { groupMembers, penalties, users } from "@/db/schema";
 import { requirePayupContext } from "@/lib/auth";
 import { notify } from "@/lib/notifications";
+import { logActivity } from "@/lib/activity";
 export async function createPenalty(formData:FormData){
  const {user,group}=await requirePayupContext(); const assignedTo=formData.get("assignedTo")?.toString(); const title=formData.get("title")?.toString().trim(); const description=formData.get("description")?.toString().trim(); const amount=formData.get("amount")?.toString(); const category=formData.get("category")?.toString()||"challenge"; const dueRaw=formData.get("dueAt")?.toString();
  if(!assignedTo||!title) throw new Error("Giocatore e penitenza sono obbligatori");
@@ -14,6 +15,7 @@ export async function createPenalty(formData:FormData){
  const dueAt=dueRaw?new Date(dueRaw):null;
  const [created]=await db.insert(penalties).values({groupId:group.groupId,assignedTo,createdBy:user.id,title:title.slice(0,200),description:description||null,amountCents,category,dueAt:dueAt&&!Number.isNaN(dueAt.getTime())?dueAt:null,status:"pending"}).returning({id:penalties.id});
  const [creator]=await db.select({username:users.username}).from(users).where(eq(users.id,user.id)).limit(1);
+ await logActivity({groupId:group.groupId,actorUserId:user.id,type:"penalty_created",message:`${creator?.username??"Qualcuno"} ha assegnato una penitenza: ${title}`,href:`/penalties/${created.id}`});
  if(assignedTo!==user.id) await notify({userId:assignedTo,groupId:group.groupId,type:"penalty_assigned",title:"Nuova penitenza 💀",message:`${creator?.username??"Qualcuno"} ti ha assegnato: ${title}`,href:`/penalties/${created.id}`});
  revalidatePath("/");revalidatePath("/notifications");redirect("/");
 }

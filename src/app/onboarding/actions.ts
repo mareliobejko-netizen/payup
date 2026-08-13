@@ -7,6 +7,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { groupMembers, groups } from "@/db/schema";
 import { requireUser } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 async function createUniqueInviteCode() {
   for (let i = 0; i < 8; i++) {
@@ -29,6 +30,7 @@ export async function createGroup(formData: FormData) {
   const inviteCode = await createUniqueInviteCode();
   const [group] = await db.insert(groups).values({ name: name.slice(0, 100), inviteCode, createdBy: user.id, verificationVotes: 3 }).returning();
   await db.insert(groupMembers).values({ groupId: group.id, userId: user.id, role: "admin" });
+  await logActivity({groupId:group.id,actorUserId:user.id,type:"group_created",message:`${user.username} ha creato il gruppo`});
   await setActiveGroup(group.id);
   redirect("/");
 }
@@ -40,7 +42,7 @@ export async function joinGroup(formData: FormData) {
   const [group] = await db.select().from(groups).where(eq(groups.inviteCode, code)).limit(1);
   if (!group) throw new Error("Codice invito non valido");
   const [existing] = await db.select({ id: groupMembers.id }).from(groupMembers).where(and(eq(groupMembers.groupId, group.id), eq(groupMembers.userId, user.id))).limit(1);
-  if (!existing) await db.insert(groupMembers).values({ groupId: group.id, userId: user.id, role: "member" });
+  if (!existing) { await db.insert(groupMembers).values({ groupId: group.id, userId: user.id, role: "member" }); await logActivity({groupId:group.id,actorUserId:user.id,type:"member_joined",message:`${user.username} è entrato nel gruppo`}); }
   await setActiveGroup(group.id);
   redirect("/");
 }

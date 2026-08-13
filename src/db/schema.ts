@@ -32,6 +32,10 @@ export const groups = pgTable("groups", {
   inviteCode: varchar("invite_code", { length: 20 }).notNull().unique(),
   createdBy: uuid("created_by").references(() => users.id).notNull(),
   verificationVotes: integer("verification_votes").default(3).notNull(),
+  wallEnabled: boolean("wall_enabled").default(true).notNull(),
+  defaultProofPublic: boolean("default_proof_public").default(false).notNull(),
+  enabledCategories: text("enabled_categories").default("money,drink,food,challenge,other").notNull(),
+  seasonStartedAt: timestamp("season_started_at", { withTimezone: true }).defaultNow().notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -107,5 +111,25 @@ export const notifications = pgTable("notifications", {
   message: text("message"),
   href: text("href"),
   isRead: boolean("is_read").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+
+export const pushSubscriptions = pgTable("push_subscriptions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  endpoint: text("endpoint").notNull().unique(),
+  p256dh: text("p256dh").notNull(),
+  auth: text("auth").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const activityLogs = pgTable("activity_logs", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  groupId: uuid("group_id").references(() => groups.id, { onDelete: "cascade" }).notNull(),
+  actorUserId: uuid("actor_user_id").references(() => users.id, { onDelete: "set null" }),
+  type: varchar("type", { length: 50 }).notNull(),
+  message: text("message").notNull(),
+  href: text("href"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });

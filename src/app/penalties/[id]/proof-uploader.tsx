@@ -5,13 +5,13 @@ import { useEffect, useRef, useState } from "react";
 import { upload } from "@vercel/blob/client";
 import { submitProof } from "./actions";
 
-type Props = { penaltyId: string };
+type Props = { penaltyId: string; wallEnabled?: boolean; defaultPublic?: boolean };
 
-export default function ProofUploader({ penaltyId }: Props) {
+export default function ProofUploader({ penaltyId, wallEnabled=true, defaultPublic=false }: Props) {
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
-  const [isPublic, setIsPublic] = useState(false);
+  const [isPublic, setIsPublic] = useState(defaultPublic);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const galleryRef = useRef<HTMLInputElement>(null);
@@ -85,7 +85,7 @@ export default function ProofUploader({ penaltyId }: Props) {
 
     <textarea value={caption} onChange={(e)=>setCaption(e.target.value)} maxLength={250} rows={3} placeholder='Aggiungi una frase… tipo “Ve l’avevo detto 😂”' className="w-full resize-none rounded-2xl border border-white/10 bg-zinc-900 p-4 outline-none placeholder:text-zinc-600 focus:border-lime-400"/>
 
-    <button type="button" onClick={()=>setIsPublic(!isPublic)} className={`flex w-full items-center gap-4 rounded-2xl border p-4 text-left ${isPublic ? "border-fuchsia-400/40 bg-fuchsia-400/10" : "border-white/10 bg-zinc-900"}`}><div className={`flex h-11 w-11 items-center justify-center rounded-full ${isPublic ? "bg-fuchsia-400 text-black" : "bg-zinc-800 text-zinc-400"}`}>{isPublic ? <Globe2 size={20}/> : <Lock size={20}/>}</div><div className="flex-1"><p className="font-black">{isPublic ? "Pubblica su The Wall" : "Solo nel gruppo"}</p><p className="mt-1 text-xs text-zinc-500">{isPublic ? "Andrà nel feed solo dopo l'approvazione del gruppo." : "Resta visibile solo ai membri del gruppo."}</p></div><div className={`h-6 w-11 rounded-full p-1 ${isPublic ? "bg-fuchsia-400" : "bg-zinc-700"}`}><div className={`h-4 w-4 rounded-full bg-white transition ${isPublic ? "translate-x-5" : ""}`}/></div></button>
+    {wallEnabled && <button type="button" onClick={()=>setIsPublic(!isPublic)} className={`flex w-full items-center gap-4 rounded-2xl border p-4 text-left ${isPublic ? "border-fuchsia-400/40 bg-fuchsia-400/10" : "border-white/10 bg-zinc-900"}`}><div className={`flex h-11 w-11 items-center justify-center rounded-full ${isPublic ? "bg-fuchsia-400 text-black" : "bg-zinc-800 text-zinc-400"}`}>{isPublic ? <Globe2 size={20}/> : <Lock size={20}/>}</div><div className="flex-1"><p className="font-black">{isPublic ? "Pubblica su The Wall" : "Solo nel gruppo"}</p><p className="mt-1 text-xs text-zinc-500">{isPublic ? "Andrà nel feed solo dopo l'approvazione del gruppo." : "Resta visibile solo ai membri del gruppo."}</p></div><div className={`h-6 w-11 rounded-full p-1 ${isPublic ? "bg-fuchsia-400" : "bg-zinc-700"}`}><div className={`h-4 w-4 rounded-full bg-white transition ${isPublic ? "translate-x-5" : ""}`}/></div></button>}
 
     {error && <div className="rounded-2xl bg-red-500/10 p-4 text-sm font-bold text-red-400">{error}</div>}
     <button type="button" onClick={handleSubmit} disabled={!file || uploading} className="flex h-16 w-full items-center justify-center gap-3 rounded-3xl bg-lime-400 text-lg font-black text-black disabled:opacity-40">{uploading ? <><Loader2 size={22} className="animate-spin"/>CARICAMENTO...</> : <><Upload size={22}/>INVIA LA PROVA</>}</button>

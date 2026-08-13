@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { requireUser, getMemberships } from "@/lib/auth";
 import AvatarUploader from "./avatar-uploader";
+import PwaManager from "@/components/pwa-manager";
 import {
   logoutAction,
   updatePasswordAction,
@@ -148,6 +149,13 @@ export default async function ProfilePage({ searchParams }: Props) {
               CAMBIA PASSWORD
             </button>
           </form>
+        </section>
+
+
+        <section className="mt-5 rounded-3xl border border-white/5 bg-zinc-900 p-5">
+          <h3 className="font-black">📲 App & notifiche push</h3>
+          <p className="mt-1 text-xs text-zinc-500">Attiva le notifiche del telefono per prove, voti e nuove penitenze.</p>
+          <div className="mt-4"><PwaManager compact /></div>
         </section>
 
         <form action={logoutAction} className="mt-5">

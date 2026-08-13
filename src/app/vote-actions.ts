@@ -6,6 +6,7 @@ import { db } from "@/db";
 import { groupMembers, groups, penalties, proofs, votes } from "@/db/schema";
 import { notify } from "@/lib/notifications";
 import { requireUser } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function voteOnProof(formData: FormData) {
   const currentUser = await requireUser();
@@ -37,12 +38,14 @@ export async function voteOnProof(formData: FormData) {
     await db.update(penalties).set({ status: "completed", completedAt: now }).where(eq(penalties.id, proof.penaltyId));
     if (proof.isPublic) await db.update(proofs).set({ publishedAt: now }).where(eq(proofs.id, proofId));
     await notify({ userId: proof.uploadedBy, groupId: proof.groupId, type: "proof_approved", title: "Prova approvata ✅", message: "Il gruppo ha confermato: FATTO PER DAVVERO.", href: `/penalties/${proof.penaltyId}` });
+    await logActivity({groupId:proof.groupId,actorUserId:currentUser.id,type:"proof_approved",message:"Una prova è stata approvata ✅",href:`/penalties/${proof.penaltyId}`});
   } else if (confirmations === requiredVotes - 1) {
     await notify({ userId: proof.uploadedBy, groupId: proof.groupId, type: "one_vote_left", title: "Manca solo 1 voto 👀", message: "La tua prova è a un solo CONFERMO dal completamento.", href: `/penalties/${proof.penaltyId}` });
   } else if (fakeVotes >= requiredVotes) {
     await db.delete(proofs).where(eq(proofs.id, proofId));
     await db.update(penalties).set({ status: "pending", completedAt: null }).where(eq(penalties.id, proof.penaltyId));
     await notify({ userId: proof.uploadedBy, groupId: proof.groupId, type: "proof_rejected", title: "Prova bocciata 🤡", message: "Il gruppo ha votato FAKE. La penitenza torna da fare.", href: `/penalties/${proof.penaltyId}` });
+    await logActivity({groupId:proof.groupId,actorUserId:currentUser.id,type:"proof_rejected",message:"Una prova è stata bocciata 🤡",href:`/penalties/${proof.penaltyId}`});
   }
 
   revalidatePath("/");

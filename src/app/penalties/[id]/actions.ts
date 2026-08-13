@@ -7,6 +7,7 @@ import { db } from "@/db";
 import { groupMembers, penalties, proofs, users } from "@/db/schema";
 import { notify } from "@/lib/notifications";
 import { requireUser } from "@/lib/auth";
+import { logActivity } from "@/lib/activity";
 
 export async function submitProof({ penaltyId, mediaUrl, mediaType, caption, isPublic }: { penaltyId: string; mediaUrl: string; mediaType: "image" | "video"; caption?: string; isPublic?: boolean; }) {
   const currentUser = await requireUser();
@@ -26,6 +27,7 @@ export async function submitProof({ penaltyId, mediaUrl, mediaType, caption, isP
   await db.insert(proofs).values({ penaltyId, uploadedBy: currentUser.id, mediaUrl, mediaType, caption: caption?.trim() || null, isPublic: Boolean(isPublic) });
   await db.update(penalties).set({ status: "verifying" }).where(eq(penalties.id, penaltyId));
 
+  await logActivity({groupId:penalty.groupId,actorUserId:currentUser.id,type:"proof_uploaded",message:`${currentUser.username} ha caricato una prova: ${penalty.title}`,href:`/penalties/${penaltyId}`});
   const members = await db.select({ userId: groupMembers.userId }).from(groupMembers).where(eq(groupMembers.groupId, penalty.groupId));
   const [who] = await db.select({ username: users.username }).from(users).where(eq(users.id, currentUser.id)).limit(1);
   await Promise.all(members.filter((m) => m.userId !== currentUser.id).map((m) => notify({ userId: m.userId, groupId: penalty.groupId, type: "proof_uploaded", title: "Nuova prova da verificare 📸", message: `${who?.username ?? "Qualcuno"} ha caricato una prova: ${penalty.title}`, href: `/penalties/${penaltyId}` })));

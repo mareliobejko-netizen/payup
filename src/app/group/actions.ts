@@ -1,113 +1,26 @@
 "use server";
-
 import { randomBytes } from "crypto";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { groupMembers, groups } from "@/db/schema";
+import { groupMembers, groups, users } from "@/db/schema";
 import { getMemberships, requireUser } from "@/lib/auth";
-import {
-  createGroup as createGroupFromOnboarding,
-  joinGroup as joinGroupFromOnboarding,
-} from "@/app/onboarding/actions";
-
-function groupRedirect(type: "success" | "error", message: string): never {
-  redirect(`/group?${type}=${encodeURIComponent(message)}`);
-}
-
-async function getAdminMembership(groupId: string, userId: string) {
-  const [membership] = await db
-    .select({ role: groupMembers.role })
-    .from(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, userId)))
-    .limit(1);
-  return membership?.role === "admin";
-}
-
-async function uniqueInviteCode() {
-  for (let i = 0; i < 10; i++) {
-    const code = randomBytes(4).toString("hex").toUpperCase();
-    const [exists] = await db.select({ id: groups.id }).from(groups).where(eq(groups.inviteCode, code)).limit(1);
-    if (!exists) return code;
-  }
-  throw new Error("Impossibile generare un nuovo codice");
-}
-
-export async function createGroup(formData: FormData) {
-  return createGroupFromOnboarding(formData);
-}
-
-export async function joinGroup(formData: FormData) {
-  return joinGroupFromOnboarding(formData);
-}
-
-export async function switchGroup(formData: FormData) {
-  const user = await requireUser();
-  const groupId = formData.get("groupId")?.toString();
-  if (!groupId) return;
-
-  const [membership] = await db.select({ id: groupMembers.id }).from(groupMembers)
-    .where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id))).limit(1);
-  if (!membership) groupRedirect("error", "Non fai parte di questo gruppo.");
-
-  const store = await cookies();
-  store.set("payup_group_id", groupId, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 365 });
-  redirect("/");
-}
-
-export async function renameGroupAction(formData: FormData) {
-  const user = await requireUser();
-  const groupId = formData.get("groupId")?.toString() ?? "";
-  const name = formData.get("name")?.toString().trim() ?? "";
-  if (name.length < 2 || name.length > 100) groupRedirect("error", "Il nome del gruppo deve avere da 2 a 100 caratteri.");
-  if (!(await getAdminMembership(groupId, user.id))) groupRedirect("error", "Solo un admin può rinominare il gruppo.");
-  await db.update(groups).set({ name }).where(eq(groups.id, groupId));
-  revalidatePath("/group"); revalidatePath("/"); revalidatePath("/ranking");
-  groupRedirect("success", "Nome gruppo aggiornato.");
-}
-
-export async function regenerateInviteCodeAction(formData: FormData) {
-  const user = await requireUser();
-  const groupId = formData.get("groupId")?.toString() ?? "";
-  if (!(await getAdminMembership(groupId, user.id))) groupRedirect("error", "Solo un admin può rigenerare il codice invito.");
-  const inviteCode = await uniqueInviteCode();
-  await db.update(groups).set({ inviteCode }).where(eq(groups.id, groupId));
-  revalidatePath("/group");
-  groupRedirect("success", `Nuovo codice invito: ${inviteCode}`);
-}
-
-export async function removeMemberAction(formData: FormData) {
-  const user = await requireUser();
-  const groupId = formData.get("groupId")?.toString() ?? "";
-  const memberUserId = formData.get("userId")?.toString() ?? "";
-  if (!(await getAdminMembership(groupId, user.id))) groupRedirect("error", "Solo un admin può rimuovere membri.");
-  if (memberUserId === user.id) groupRedirect("error", "Per uscire dal gruppo usa il pulsante Esci dal gruppo.");
-
-  const [group] = await db.select({ createdBy: groups.createdBy }).from(groups).where(eq(groups.id, groupId)).limit(1);
-  if (!group) groupRedirect("error", "Gruppo non trovato.");
-  if (group.createdBy === memberUserId) groupRedirect("error", "Il creatore del gruppo non può essere rimosso.");
-
-  await db.delete(groupMembers).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, memberUserId)));
-  revalidatePath("/group"); revalidatePath("/ranking");
-  groupRedirect("success", "Membro rimosso dal gruppo.");
-}
-
-export async function leaveGroupAction(formData: FormData) {
-  const user = await requireUser();
-  const groupId = formData.get("groupId")?.toString() ?? "";
-  const [group] = await db.select({ createdBy: groups.createdBy }).from(groups).where(eq(groups.id, groupId)).limit(1);
-  if (!group) groupRedirect("error", "Gruppo non trovato.");
-  if (group.createdBy === user.id) groupRedirect("error", "Il creatore non può uscire dal gruppo. Per ora deve restare amministratore.");
-
-  await db.delete(groupMembers).where(and(eq(groupMembers.groupId, groupId), eq(groupMembers.userId, user.id)));
-
-  const memberships = await getMemberships(user.id);
-  const store = await cookies();
-  const nextGroup = memberships.find((m) => m.groupId !== groupId);
-  if (nextGroup) store.set("payup_group_id", nextGroup.groupId, { httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 365 });
-  else store.delete("payup_group_id");
-
-  redirect(nextGroup ? "/" : "/onboarding");
-}
+import { logActivity } from "@/lib/activity";
+import { createGroup as createGroupFromOnboarding, joinGroup as joinGroupFromOnboarding } from "@/app/onboarding/actions";
+function go(type:"success"|"error",message:string,path="/group"):never{redirect(`${path}?${type}=${encodeURIComponent(message)}`)}
+async function membership(groupId:string,userId:string){const [m]=await db.select({role:groupMembers.role}).from(groupMembers).where(and(eq(groupMembers.groupId,groupId),eq(groupMembers.userId,userId))).limit(1);return m}
+async function requireManager(groupId:string,userId:string){const m=await membership(groupId,userId);if(!m||!['admin','moderator'].includes(m.role)) go('error','Non hai i permessi necessari.');return m}
+async function requireAdmin(groupId:string,userId:string){const m=await membership(groupId,userId);if(m?.role!=='admin') go('error','Solo un admin può farlo.');return m}
+async function code(){for(let i=0;i<10;i++){const c=randomBytes(4).toString('hex').toUpperCase();const [x]=await db.select({id:groups.id}).from(groups).where(eq(groups.inviteCode,c)).limit(1);if(!x)return c}throw new Error('Impossibile generare codice')}
+export async function createGroup(formData:FormData){return createGroupFromOnboarding(formData)}
+export async function joinGroup(formData:FormData){return joinGroupFromOnboarding(formData)}
+export async function switchGroup(formData:FormData){const user=await requireUser();const groupId=formData.get('groupId')?.toString();if(!groupId)return; if(!(await membership(groupId,user.id)))go('error','Non fai parte di questo gruppo.');const store=await cookies();store.set('payup_group_id',groupId,{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',maxAge:31536000});redirect('/')}
+export async function renameGroupAction(formData:FormData){const user=await requireUser();const groupId=formData.get('groupId')?.toString()??'';const name=formData.get('name')?.toString().trim()??'';if(name.length<2||name.length>100)go('error','Nome non valido');await requireAdmin(groupId,user.id);await db.update(groups).set({name}).where(eq(groups.id,groupId));await logActivity({groupId,actorUserId:user.id,type:'group_renamed',message:`${user.username} ha rinominato il gruppo in ${name}`});revalidatePath('/group');revalidatePath('/');go('success','Nome gruppo aggiornato.')}
+export async function regenerateInviteCodeAction(formData:FormData){const user=await requireUser();const groupId=formData.get('groupId')?.toString()??'';await requireAdmin(groupId,user.id);const inviteCode=await code();await db.update(groups).set({inviteCode}).where(eq(groups.id,groupId));await logActivity({groupId,actorUserId:user.id,type:'invite_regenerated',message:`${user.username} ha rigenerato il codice invito`});revalidatePath('/group');go('success',`Nuovo codice: ${inviteCode}`)}
+export async function removeMemberAction(formData:FormData){const user=await requireUser();const groupId=formData.get('groupId')?.toString()??'';const memberUserId=formData.get('userId')?.toString()??'';await requireManager(groupId,user.id);if(memberUserId===user.id)go('error','Usa Esci dal gruppo.');const [target]=await db.select({role:groupMembers.role,username:users.username}).from(groupMembers).innerJoin(users,eq(groupMembers.userId,users.id)).where(and(eq(groupMembers.groupId,groupId),eq(groupMembers.userId,memberUserId))).limit(1);const [g]=await db.select({createdBy:groups.createdBy}).from(groups).where(eq(groups.id,groupId)).limit(1);if(!target||!g)go('error','Membro non trovato');if(g.createdBy===memberUserId)go('error','Il creatore non può essere rimosso');const me=await membership(groupId,user.id);if(me?.role==='moderator'&&target.role!=='member')go('error','Un moderatore può rimuovere solo membri.');await db.delete(groupMembers).where(and(eq(groupMembers.groupId,groupId),eq(groupMembers.userId,memberUserId)));await logActivity({groupId,actorUserId:user.id,type:'member_removed',message:`${user.username} ha rimosso ${target.username}`});revalidatePath('/group');revalidatePath('/ranking');go('success','Membro rimosso.')}
+export async function changeRoleAction(formData:FormData){const user=await requireUser();const groupId=formData.get('groupId')?.toString()??'';const targetId=formData.get('userId')?.toString()??'';const role=formData.get('role')?.toString()??'';if(!['member','moderator'].includes(role))go('error','Ruolo non valido');await requireAdmin(groupId,user.id);const [g]=await db.select({createdBy:groups.createdBy}).from(groups).where(eq(groups.id,groupId)).limit(1);if(g?.createdBy===targetId)go('error','Il creatore resta admin');const [target]=await db.select({username:users.username}).from(users).where(eq(users.id,targetId)).limit(1);await db.update(groupMembers).set({role}).where(and(eq(groupMembers.groupId,groupId),eq(groupMembers.userId,targetId)));await logActivity({groupId,actorUserId:user.id,type:'role_changed',message:`${user.username} ha impostato ${target?.username??'un membro'} come ${role==='moderator'?'moderatore':'membro'}`});revalidatePath('/group');go('success','Ruolo aggiornato.')}
+export async function updateGroupSettingsAction(formData:FormData){const user=await requireUser();const groupId=formData.get('groupId')?.toString()??'';await requireAdmin(groupId,user.id);let votes=Math.max(1,Math.min(10,Number(formData.get('verificationVotes')||3)));const categories=formData.getAll('categories').map(String).filter(x=>['money','drink','food','challenge','other'].includes(x));if(!categories.length)categories.push('challenge');await db.update(groups).set({verificationVotes:votes,wallEnabled:formData.get('wallEnabled')==='on',defaultProofPublic:formData.get('defaultProofPublic')==='on',enabledCategories:categories.join(',')}).where(eq(groups.id,groupId));await logActivity({groupId,actorUserId:user.id,type:'settings_updated',message:`${user.username} ha aggiornato le impostazioni del gruppo`});revalidatePath('/group/settings');revalidatePath('/');go('success','Impostazioni salvate.','/group/settings')}
+export async function startNewSeasonAction(formData:FormData){const user=await requireUser();const groupId=formData.get('groupId')?.toString()??'';await requireAdmin(groupId,user.id);await db.update(groups).set({seasonStartedAt:new Date()}).where(eq(groups.id,groupId));await logActivity({groupId,actorUserId:user.id,type:'season_started',message:`${user.username} ha iniziato una nuova stagione 🏁`,href:'/ranking?period=season'});revalidatePath('/ranking');go('success','Nuova stagione iniziata.','/group/settings')}
+export async function leaveGroupAction(formData:FormData){const user=await requireUser();const groupId=formData.get('groupId')?.toString()??'';const [g]=await db.select({createdBy:groups.createdBy}).from(groups).where(eq(groups.id,groupId)).limit(1);if(!g)go('error','Gruppo non trovato');if(g.createdBy===user.id)go('error','Il creatore non può uscire.');await logActivity({groupId,actorUserId:user.id,type:'member_left',message:`${user.username} è uscito dal gruppo`});await db.delete(groupMembers).where(and(eq(groupMembers.groupId,groupId),eq(groupMembers.userId,user.id)));const memberships=await getMemberships(user.id);const next=memberships.find(m=>m.groupId!==groupId);const store=await cookies();if(next)store.set('payup_group_id',next.groupId,{httpOnly:true,sameSite:'lax',secure:process.env.NODE_ENV==='production',path:'/',maxAge:31536000});else store.delete('payup_group_id');redirect(next?'/':'/onboarding')}

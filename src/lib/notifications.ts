@@ -1,5 +1,6 @@
 import { db } from "@/db";
 import { notifications } from "@/db/schema";
+import { sendPushToUser } from "@/lib/push";
 
 export async function notify(input: {
   userId: string;
@@ -17,4 +18,5 @@ export async function notify(input: {
     message: input.message ?? null,
     href: input.href ?? null,
   });
+  await sendPushToUser(input.userId,{title:input.title,body:input.message??undefined,url:input.href??"/notifications"});
 }

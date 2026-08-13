@@ -36,7 +36,7 @@ export default async function FeedPage({ searchParams }: Props) {
     .innerJoin(users, eq(proofs.uploadedBy, users.id))
     .innerJoin(groups, eq(penalties.groupId, groups.id))
     .leftJoin(proofLikes, eq(proofLikes.proofId, proofs.id))
-    .where(and(eq(proofs.isPublic, true), eq(penalties.status, "completed"), isNotNull(proofs.publishedAt)))
+    .where(and(eq(proofs.isPublic, true), eq(groups.wallEnabled, true), eq(penalties.status, "completed"), isNotNull(proofs.publishedAt)))
     .groupBy(proofs.id, users.id, users.username, users.avatarUrl, groups.name, penalties.title);
 
   const posts = sort === "popular"

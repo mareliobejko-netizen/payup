@@ -21,3 +21,9 @@ input,
 textarea {
   -webkit-tap-highlight-color: transparent;
 }
+html { scroll-behavior: smooth; background:#09090b; }
+body { overscroll-behavior-y: none; -webkit-tap-highlight-color: transparent; }
+button,a { touch-action: manipulation; }
+@media (prefers-reduced-motion: no-preference){ .payup-card{transition:transform .18s ease,border-color .18s ease,background-color .18s ease}.payup-card:active{transform:scale(.985)} }
+.safe-bottom{padding-bottom:max(1.25rem,env(safe-area-inset-bottom));}
+.skeleton{background:linear-gradient(90deg,#18181b 25%,#27272a 37%,#18181b 63%);background-size:400% 100%;animation:shimmer 1.3s ease infinite}@keyframes shimmer{0%{background-position:100% 0}100%{background-position:-100% 0}}

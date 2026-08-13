@@ -1,0 +1,3 @@
+"use client";
+import { RefreshCw } from "lucide-react";
+export default function ErrorPage({reset}:{reset:()=>void}){return <main className="flex min-h-screen items-center justify-center bg-zinc-950 p-6 text-white"><div className="w-full max-w-sm rounded-3xl bg-zinc-900 p-6 text-center"><p className="text-5xl">😵</p><h1 className="mt-4 text-xl font-black">Qualcosa è andato storto</h1><p className="mt-2 text-sm text-zinc-500">Niente panico: riprova senza perdere i tuoi dati.</p><button onClick={reset} className="mt-5 flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-lime-400 font-black text-black"><RefreshCw size={17}/>RIPROVA</button></div></main>}
