@@ -66,3 +66,10 @@ Questa versione aggiunge avatar, ranking evoluto e gestione completa dei gruppi 
 - Direct public post pages with share button
 - Proof capture: gallery, take photo, or record video on supported mobile browsers
 - Public/private proof choice remains unchanged: public posts appear only after group approval
+
+## v0.5 - Public shared posts
+- Shared `/post/[id]` links are viewable without login.
+- Public user profiles `/u/[username]` are viewable without login.
+- Logged-out visitors see a registration CTA.
+- Likes still require an account.
+- Public post metadata improves link previews for image proofs.
