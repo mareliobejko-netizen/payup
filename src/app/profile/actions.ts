@@ -8,6 +8,7 @@ import { db } from "@/db";
 import { sessions, users } from "@/db/schema";
 import { deleteCurrentSession, getCurrentSessionHash, requireUser } from "@/lib/auth";
 import { isPresetAvatar } from "@/lib/avatar-system";
+import { unlockAvatarIfEligible } from "@/lib/avatar-catalog";
 
 function profileRedirect(type:"success"|"error",message:string,extra=""):never{redirect(`/profile?${type}=${encodeURIComponent(message)}${extra}`)}
 const recoveryHash=(x:string)=>createHash("sha256").update(x.trim().toUpperCase()).digest("hex");
@@ -23,6 +24,9 @@ export async function revokeSessionAction(formData:FormData){const user=await re
 export async function revokeOtherSessionsAction(){const user=await requireUser();const current=await getCurrentSessionHash();if(current)await db.delete(sessions).where(and(eq(sessions.userId,user.id),ne(sessions.tokenHash,current)));revalidatePath('/profile');profileRedirect('success','Tutte le altre sessioni sono state chiuse.')}
 
 export async function updateAvatarAction(avatarUrl:string){const user=await requireUser();if(!avatarUrl||(!avatarUrl.startsWith("https://")&&!isPresetAvatar(avatarUrl)))profileRedirect("error","Avatar non valido.");await db.update(users).set({avatarUrl}).where(eq(users.id,user.id));revalidatePath("/profile");revalidatePath("/");revalidatePath("/feed");revalidatePath("/ranking")}
+
+
+export async function updateManagedAvatarAction(formData:FormData){const user=await requireUser();const avatarId=formData.get("avatarId")?.toString()??"";const result=await unlockAvatarIfEligible(user.id,avatarId);if(!result.ok||!result.avatar)profileRedirect("error",result.reason??"Avatar non disponibile.");await db.update(users).set({avatarUrl:result.avatar.imageUrl}).where(eq(users.id,user.id));revalidatePath("/profile");revalidatePath("/");revalidatePath("/feed");revalidatePath("/ranking");profileRedirect("success",`Avatar ${result.avatar.name} selezionato.`)}
 
 export async function updatePresetAvatarAction(formData:FormData){const avatarUrl=formData.get("avatarUrl")?.toString()??"";if(!isPresetAvatar(avatarUrl))profileRedirect("error","Avatar PayUp non valido.");await updateAvatarAction(avatarUrl);profileRedirect("success","Avatar PayUp aggiornato.")}
 export async function logoutAction(){await deleteCurrentSession();redirect("/login")}

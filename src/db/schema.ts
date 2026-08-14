@@ -179,3 +179,33 @@ export const moderationNotes = pgTable("moderation_notes", {
   note: text("note").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
 });
+
+
+export const avatars = pgTable("avatars", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: varchar("slug", { length: 80 }).notNull().unique(),
+  name: varchar("name", { length: 120 }).notNull(),
+  imageUrl: text("image_url").notNull(),
+  type: varchar("type", { length: 20 }).default("base").notNull(),
+  active: boolean("active").default(true).notNull(),
+  seasonalStart: varchar("seasonal_start", { length: 5 }),
+  seasonalEnd: varchar("seasonal_end", { length: 5 }),
+  keepAfterUnlock: boolean("keep_after_unlock").default(true).notNull(),
+  unlockType: varchar("unlock_type", { length: 40 }),
+  unlockValue: integer("unlock_value"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow().notNull(),
+});
+
+export const userAvatarUnlocks = pgTable(
+  "user_avatar_unlocks",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    userId: uuid("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+    avatarId: uuid("avatar_id").references(() => avatars.id, { onDelete: "cascade" }).notNull(),
+    source: varchar("source", { length: 40 }).default("achievement").notNull(),
+    unlockedAt: timestamp("unlocked_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [unique().on(table.userId, table.avatarId)]
+);

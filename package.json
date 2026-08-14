@@ -1,6 +1,6 @@
 {
   "name": "payup",
-  "version": "1.1.0-beta",
+  "version": "1.5.0-beta",
   "private": true,
   "scripts": {
     "dev": "next dev",
@@ -18,7 +18,8 @@
     "db:v08-migrate": "tsx src/db/v08-migrate.ts",
     "db:v09-migrate": "tsx src/db/v09-migrate.ts",
     "db:v10-migrate": "tsx src/db/v10-migrate.ts",
-    "db:v14-avatar-defaults": "tsx src/db/v14-avatar-defaults.ts"
+    "db:v14-avatar-defaults": "tsx src/db/v14-avatar-defaults.ts",
+    "db:v15-avatar-cms": "tsx src/db/v15-avatar-cms.ts"
   },
   "dependencies": {
     "@neondatabase/serverless": "latest",

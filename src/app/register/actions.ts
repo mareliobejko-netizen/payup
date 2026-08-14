@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { createSession } from "@/lib/auth";
-import { AVATAR_PRESETS } from "@/lib/avatar-system";
+import { getRegistrationAvatars, isRegistrationAvatarAllowed } from "@/lib/avatar-catalog";
 
 function registerError(message: string, next?: string): never {
   const suffix = next ? `&next=${encodeURIComponent(next)}` : "";
@@ -18,7 +18,8 @@ export async function registerAction(formData: FormData) {
   const email = formData.get("email")?.toString().trim().toLowerCase();
   const password = formData.get("password")?.toString() ?? "";
   const confirmPassword = formData.get("confirmPassword")?.toString() ?? "";
-  const avatarUrl = formData.get("avatarUrl")?.toString() ?? AVATAR_PRESETS[0].url;
+  const availableAvatars = await getRegistrationAvatars();
+  const avatarUrl = formData.get("avatarUrl")?.toString() ?? availableAvatars[0]?.imageUrl ?? "/avatars/classic.svg";
   const next = formData.get("next")?.toString();
   const safeNext = next?.startsWith("/") && !next.startsWith("//") ? next : undefined;
 
@@ -53,7 +54,7 @@ export async function registerAction(formData: FormData) {
     registerError("Username o email già utilizzati.", safeNext);
   }
 
-  if (!AVATAR_PRESETS.some((avatar) => avatar.url === avatarUrl)) {
+  if (!(await isRegistrationAvatarAllowed(avatarUrl))) {
     registerError("Scegli un avatar PayUp valido.", safeNext);
   }
 

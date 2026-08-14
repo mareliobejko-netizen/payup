@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Mail, ShieldCheck, Skull, UserRound } from "lucide-react";
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { AVATAR_PRESETS } from "@/lib/avatar-system";
+import { getRegistrationAvatars } from "@/lib/avatar-catalog";
 import { registerAction } from "./actions";
 
 type RegisterPageProps = {
@@ -12,6 +12,7 @@ type RegisterPageProps = {
 export default async function RegisterPage({ searchParams }: RegisterPageProps) {
   if (await getCurrentUser()) redirect("/");
   const { error, next } = await searchParams;
+  const availableAvatars = await getRegistrationAvatars();
 
   return (
     <main className="min-h-screen bg-zinc-950 px-5 py-8 text-white">
@@ -52,13 +53,13 @@ export default async function RegisterPage({ searchParams }: RegisterPageProps) 
             <legend className="text-sm font-black text-zinc-300">Scegli il tuo teschio 💀</legend>
             <p className="mt-1 text-xs text-zinc-500">Potrai cambiarlo quando vuoi dal profilo o caricare una tua foto.</p>
             <div className="mt-4 grid grid-cols-5 gap-2">
-              {AVATAR_PRESETS.map((avatar, index) => (
+              {availableAvatars.map((avatar, index) => (
                 <label key={avatar.id} className="cursor-pointer text-center">
-                  <input type="radio" name="avatarUrl" value={avatar.url} defaultChecked={index === 0} className="peer sr-only" />
+                  <input type="radio" name="avatarUrl" value={avatar.imageUrl} defaultChecked={index === 0} className="peer sr-only" />
                   <span className="block rounded-2xl border-2 border-transparent bg-zinc-950 p-1 transition peer-checked:border-lime-400 peer-checked:bg-lime-400/10">
-                    <img src={avatar.url} alt={avatar.label} className="aspect-square w-full rounded-xl object-cover" />
+                    <img src={avatar.imageUrl} alt={avatar.name} className="aspect-square w-full rounded-xl object-cover" />
                   </span>
-                  <span className="mt-1 block truncate text-[9px] font-bold text-zinc-500 peer-checked:text-lime-300">{avatar.label}</span>
+                  <span className="mt-1 block truncate text-[9px] font-bold text-zinc-500 peer-checked:text-lime-300">{avatar.name}</span>
                 </label>
               ))}
             </div>
